@@ -1,6 +1,8 @@
 Todo
 - Implement semi-binary greedymeshing
 - Construct collision areas based on mesh
+- Implement area reading of a bitField
+
 
 Done
 -/ Create bitField Class
