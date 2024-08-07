@@ -14,11 +14,11 @@ static func create(dims: Vector2i, conLength: Vector2):
 	newGrid.length = conLength;
 	newGrid.com = conLength/2;
 	newGrid.blockLength = conLength/Vector2(dims);
-	newGrid.yOffset = Utility.bitCount(dims.x);
+	newGrid.yOffset = Util.bitCount(dims.x);
 	newGrid.area = dims.x * dims.y;
 	#The one in the following constructor is based on
 	#how many types of blocks need saving, 2**1
-	newGrid.blocks = bitField.create(newGrid.area, 1);
+	newGrid.blocks = bitField.create(newGrid.area, 2);
 	return newGrid
 #Instance function start
 func decode(key:int):
@@ -48,10 +48,10 @@ func pointKey(point:Vector2):
 	return keys
 
 func greedyMesh():
+	
 	pass
 
-func cornerFind():
-	pass
+
 
 
 

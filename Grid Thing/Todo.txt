@@ -1,5 +1,14 @@
+Todo
+- Implement semi-binary greedymeshing
+- Construct collision areas based on mesh
+
+Done
 -/ Create bitField Class
 -/ Implement bitField for block tracking in global/grid.gd
-- Implement semi-binary greedymeshing
+
+
+
+
+When the engine fails us
 - Implement semi-binary corner detection
 - - Figure out how to handle edge case

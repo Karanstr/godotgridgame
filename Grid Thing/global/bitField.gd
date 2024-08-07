@@ -9,15 +9,15 @@ var totalBoxes:int;
 var data:Array[int] = [];
 
 #Constructor
-static func create(packNum:float, packSiz:int):
+static func create(packNum:int, packSiz:int):
 	var field = bitField.new();
 	field.totalPacks = packNum;
 	field.packSize = packSiz; 
 	field.packMask = 2**packSiz - 1;
-	field.packsPerBox = floor(boxSize/packSiz)
-	field.totalBoxes = ceil(packNum/field.packsPerBox);
+	field.packsPerBox = boxSize/packSiz
+	field.totalBoxes = ceil(float(packNum)/field.packsPerBox);
 	for box in field.totalBoxes:
-		field.data.append(0);
+		field.data.push_back(0);
 	return field;
 
 func _getBox(index:int):
@@ -33,7 +33,7 @@ func read(index:int):
 	return (data[boxNum] >> padding) & packMask 
 
 func modify(index:int, newVal:int):
-	if (Utility.bitCount(newVal) > packSize):
+	if (Util.bitCount(newVal) > packSize):
 		print("Value exceeds packing size: " + String.num_int64(newVal))
 		return false
 	if (index >= totalPacks):
@@ -45,3 +45,20 @@ func modify(index:int, newVal:int):
 	box += (newVal - oldValue) << _getPadding(index, boxNum)
 	data[boxNum] = box
 	return oldValue
+
+func readSection(packsInSection:int, startIndex:int):
+	var section:Array[int] = [];
+	var startBox:int = _getBox(startIndex);
+	var startPadding:int = _getPadding(startIndex, startBox);
+	var remBoxBits:int = boxSize - startPadding;
+	var reqSecBits:int = packsInSection*packSize
+	if (reqSecBits <= boxSize): #Easy way, entire section fits in a single box
+		var remPacksInBox:int = remBoxBits/packSize
+		var startMask:int = Util.genMask(packSize, remPacksInBox, packMask)
+		var endMask:int = Util.genMask(packSize, packsInSection - remPacksInBox, packMask);
+		section.push_back(((data[startBox] >> startPadding) & startMask) + (data[startBox+1] & endMask))
+	else: #Hard way, section does not fit in one box :(
+		pass
+	return section
+
+

@@ -1,16 +1,14 @@
-
 extends RigidBody2D
 
-var grid:Grid = Grid.create(Vector2i(5,5), Vector2(10,10));
+var grid:Grid = Grid.create(Vector2i(10,11), Vector2(30,30));
 var force:Vector2 = Vector2(0, -.1)
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-
 	pass
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
+func _process(_delta):
 	if Input.is_action_just_pressed("click"):
 		var keys:Array[int] = grid.pointKey(get_local_mouse_position() + grid.com)
 		var key:int = keys[0]
