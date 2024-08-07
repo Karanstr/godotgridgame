@@ -1,0 +1,5 @@
+-/ Create bitField Class
+-/ Implement bitField for block tracking in global/grid.gd
+- Implement semi-binary greedymeshing
+- Implement semi-binary corner detection
+- - Figure out how to handle edge case
