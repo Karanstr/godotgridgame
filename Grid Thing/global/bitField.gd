@@ -1,6 +1,6 @@
 class_name bitField
 
-const boxSize = 63 #bits, 63 bc signed :(
+const boxSize = 64 #bits, 63 bc signed :(
 var totalPacks:int;
 var packSize:int;
 var packMask:int;
@@ -30,7 +30,7 @@ func _getPadding(index:int, boxNum:int):
 func read(index:int):
 	var boxNum:int = _getBox(index);
 	var padding:int = _getPadding(index, boxNum);
-	return (data[boxNum] >> padding) & packMask 
+	return Util.rightShift(data[boxNum], padding) & packMask 
 
 func modify(index:int, newVal:int):
 	if (Util.bitCount(newVal) > packSize):
@@ -42,7 +42,7 @@ func modify(index:int, newVal:int):
 	var boxNum:int = _getBox(index);
 	var box:int = data[boxNum]	
 	var oldValue:int = read(index);
-	box += (newVal - oldValue) << _getPadding(index, boxNum)
+	box += Util.leftShift(newVal - oldValue, _getPadding(index, boxNum))
 	data[boxNum] = box
 	return oldValue
 
@@ -51,14 +51,13 @@ func readSection(packsInSection:int, startIndex:int):
 	var startBox:int = _getBox(startIndex);
 	var startPadding:int = _getPadding(startIndex, startBox);
 	var remBoxBits:int = boxSize - startPadding;
-	var reqSecBits:int = packsInSection*packSize
+	var reqSecBits:int = packsInSection * packSize
 	if (reqSecBits <= boxSize): #Easy way, entire section fits in a single box
 		var remPacksInBox:int = remBoxBits/packSize
 		var startMask:int = Util.genMask(packSize, remPacksInBox, packMask)
 		var endMask:int = Util.genMask(packSize, packsInSection - remPacksInBox, packMask);
-		section.push_back(((data[startBox] >> startPadding) & startMask) + (data[startBox+1] & endMask))
+		section.push_back((Util.rightShift(data[startBox], startPadding) & startMask) + Util.leftShift(data[startBox+1] & endMask, remPacksInBox * packSize))
 	else: #Hard way, section does not fit in one box :(
+		
 		pass
 	return section
-
-

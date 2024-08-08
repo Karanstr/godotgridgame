@@ -25,7 +25,6 @@ func rightShift(number:int, bits:int):
 		return number
 	var shiftedNumber:int = (number & Util.maxInt) >> bits;
 	if (number < 0):
-		var saveB64:int = 1 << (64 - bits)
+		var saveB64:int = 1 << (63 - bits)
 		shiftedNumber |= saveB64
 	return shiftedNumber
-

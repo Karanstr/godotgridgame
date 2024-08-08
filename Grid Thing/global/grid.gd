@@ -17,9 +17,10 @@ static func create(dims: Vector2i, conLength: Vector2):
 	newGrid.yOffset = Util.bitCount(dims.x);
 	newGrid.area = dims.x * dims.y;
 	#The one in the following constructor is based on
-	#how many types of blocks need saving, 2**1
-	newGrid.blocks = bitField.create(newGrid.area, 2);
+	#how many types of blocks need saving, 2**n
+	newGrid.blocks = bitField.create(newGrid.area, 5);
 	return newGrid
+
 #Instance function start
 func decode(key:int):
 	return Vector2i(key%dimensions.x, key/dimensions.x)
