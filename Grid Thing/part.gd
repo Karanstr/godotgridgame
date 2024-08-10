@@ -14,11 +14,7 @@ func _process(_delta):
 		var key:int = keys[0]
 		if key != -1:
 			force.y *= -1
-			var data:int = 0;
-			if grid.read(key) == 0:
-				data = 1
-			grid.assign(key, data)
-			print(position)
+			grid.assign(key, (grid.read(key) + 1) % 2)
 			queue_redraw()
 	apply_force(force.rotated(rotation), (position + Vector2(-5,-5)).rotated(rotation))
 	apply_force((force*-1).rotated(rotation), (position + Vector2(5,5)).rotated(rotation))

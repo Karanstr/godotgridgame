@@ -18,7 +18,7 @@ static func create(dims: Vector2i, conLength: Vector2):
 	newGrid.area = dims.x * dims.y;
 	#The one in the following constructor is based on
 	#how many types of blocks need saving, 2**n
-	newGrid.blocks = bitField.create(newGrid.area, 5);
+	newGrid.blocks = bitField.create(newGrid.area, 2);
 	return newGrid
 
 #Instance function start
