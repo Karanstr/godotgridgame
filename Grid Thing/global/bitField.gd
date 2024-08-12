@@ -20,6 +20,7 @@ static func create(packNum:int, packSiz:int):
 		field.data.push_back(0);
 	return field;
 
+#Instance function start
 func _getBox(index:int):
 	return int (index/packsPerBox)
 
@@ -31,6 +32,23 @@ func read(index:int):
 	var boxNum:int = _getBox(index);
 	var padding:int = _getPadding(index, boxNum);
 	return Util.rightShift(data[boxNum], padding) & packMask 
+
+func readSection(packsRemaining:int, startIndex:int):
+	var section:Array[int] = [];
+	var currentBox:int = _getBox(startIndex);
+	var curPadding:int = _getPadding(startIndex, currentBox);
+	var remPacksInCurBox:int = (boxSize - curPadding)/packSize
+	while packsRemaining > 0:
+		var rightSideMask:int = Util.genMask(packSize, min(remPacksInCurBox, packsRemaining), packMask);
+		var packsInNextBox = min(boxSize, packsRemaining) - remPacksInCurBox
+		var leftSideMask:int = Util.genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packsRemaining) else 0;
+		var rightSide = Util.rightShift(data[currentBox], curPadding) & rightSideMask;
+		var leftSide = Util.leftShift(data[currentBox+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox < packsRemaining) else 0;
+		section.push_back(rightSide + leftSide);
+		packsRemaining -= packsPerBox;
+		currentBox += 1;
+		remPacksInCurBox = boxSize - packsInNextBox;
+	return section
 
 func modify(index:int, newVal:int):
 	if (Util.bitCount(newVal) > packSize):
@@ -45,20 +63,3 @@ func modify(index:int, newVal:int):
 	box += Util.leftShift(newVal - oldValue, _getPadding(index, boxNum))
 	data[boxNum] = box
 	return oldValue
-
-func readSection(packsRemaining:int, startIndex:int):
-	var section:Array[int] = [];
-	var currentBox:int = _getBox(startIndex);
-	var curPadding:int = _getPadding(startIndex, currentBox);
-	var remPacksInCurBox:int = (boxSize - curPadding)/packSize
-	while packsRemaining > 0:
-		var rightSideMask:int = Util.genMask(packSize, min(remPacksInCurBox, packsRemaining), packMask);
-		var packsInNextBox = min(boxSize, packsRemaining) - remPacksInCurBox
-		var leftSideMask:int = Util.genMask(packSize, packsInNextBox, packMask);
-		var rightSide = Util.rightShift(data[currentBox], curPadding) & rightSideMask;
-		var leftSide = Util.leftShift(data[currentBox+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox > packsRemaining) else 0;
-		section.push_back(rightSide + leftSide);
-		packsRemaining -= packsPerBox;
-		currentBox += 1;
-		remPacksInCurBox = boxSize - packsInNextBox;
-	return section
