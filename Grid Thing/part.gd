@@ -45,16 +45,10 @@ func _draw():
 			gridAlignedRect.size *= grid.blockLength
 			draw_rect(gridAlignedRect, color)
 			draw_rect(gridAlignedRect, "black", false, 1)
-
-
-
 	print("Draw complete")
 
 func _keyToPoint(key):
 	return grid.blockLength*Vector2(grid.decode(key)) - grid.com
-
-func _makeRectFromKey(key, size):
-	return Rect2(_keyToPoint(key), size)
 
 func _makeColBox(key:int, size:Vector2):
 	var colShape = CollisionShape2D.new()
