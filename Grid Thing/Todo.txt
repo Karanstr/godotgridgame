@@ -1,16 +1,23 @@
 Todo
-- Implement semi-binary greedymeshing
-- Construct collision areas based on mesh
-- Implement area reading of a bitField
+- Manage collision areas based on mesh
+- - Construct new collision rects when old mesh is updated
+- - Destroy old collision rects when mesh is updated
+- - Preserve collision rects unnafected by mesh updates(?)
+- Allow greedymesher to handle row lengths of more than a bitBox (64 bits)
+- Figure out sleeping issue when updating collision boxes
+- Add saving and loadng of grid
+
 
 
 Done
 -/ Create bitField Class
 -/ Implement bitField for block tracking in global/grid.gd
+-/ Implement area reading of a bitField
+-/ Implement binary greedymeshing
 
 
 
-
-When the engine fails us
-- Implement semi-binary corner detection
-- - Figure out how to handle edge case
+When (if) the engine fails us
+- Performant raystepping
+- - Implement binary corner detection
+- - - Figure out how to handle transition between multiple bitBoxes
