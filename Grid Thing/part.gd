@@ -1,13 +1,15 @@
 extends RigidBody2D
 
-var grid:Grid = Grid.create(Vector2i(8,8), Vector2(30,30));
+var grid:Grid = Grid.create(Vector2i(8,8), Vector2(30,30), 2);
 var force:Vector2 = Vector2(0, -.05);
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	for i in range(grid.dimensions.x):
-		grid.assign(i, 1)
-		add_child(_makeColBox(i, grid.blockLength))
+		if (i != 1):
+			grid.assign(i, 1)
+			add_child(_makeColBox(i, grid.blockLength))
+	grid.reCacheMeshes([0, 1])
 	pass
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -22,20 +24,30 @@ func _process(_delta):
 				add_child(_makeColBox(key, grid.blockLength))
 			else:
 				get_node(String.num_int64(key)).queue_free()
-			grid.assign(key, newVal)
-			print(grid._rowToBits(0, [0,1]))
+			var oldVal:int = grid.assign(key, newVal)
+			grid.reCacheMeshes([oldVal, newVal]);
 			queue_redraw()
 	#apply_force(force.rotated(rotation), (position + Vector2(-5,-5)).rotated(rotation))
 	#apply_force((force*-1).rotated(rotation), (position + Vector2(5,5)).rotated(rotation))
 
 func _draw():
-	for i in grid.area:
-		var color:Color = "Red"
-		var rect:Rect2 = _makeRectFromKey(i, grid.blockLength)
-		if grid.blocks.read(i) == 1:
-			color = "Yellow"
-		draw_rect(rect, color)
-		draw_rect(rect, "black", false, .1)
+	for blockMeshes in grid.cachedMeshes.size():
+		var color:Color;
+		match blockMeshes:
+			0: color = "Red"
+			1: color = "Yellow"
+			2: color = "Green"
+			3: color = "Blue"
+		for rect in grid.cachedMeshes[blockMeshes].size():
+			var gridAlignedRect:Rect2 = Rect2(grid.cachedMeshes[blockMeshes][rect]);
+			gridAlignedRect.position *= grid.blockLength
+			gridAlignedRect.position -= grid.com
+			gridAlignedRect.size *= grid.blockLength
+			draw_rect(gridAlignedRect, color)
+			draw_rect(gridAlignedRect, "black", false, 1)
+
+
+
 	print("Draw complete")
 
 func _keyToPoint(key):

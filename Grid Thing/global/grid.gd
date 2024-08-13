@@ -8,10 +8,11 @@ var com:Vector2;
 var blockLength:Vector2;
 var yOffset:int;
 var area:int;
-var cachedMeshes:Array;
+var cachedMeshes:Array = [];
+var uniqueBlocks:int;
 
 #Constructor
-static func create(dims: Vector2i, conLength: Vector2):
+static func create(dims: Vector2i, conLength: Vector2, blockCount:int):
 	var newGrid = Grid.new();
 	newGrid.dimensions = dims;
 	newGrid.length = conLength;
@@ -19,9 +20,9 @@ static func create(dims: Vector2i, conLength: Vector2):
 	newGrid.blockLength = conLength/Vector2(dims);
 	newGrid.yOffset = Util.bitCount(dims.x);
 	newGrid.area = dims.x * dims.y;
-	#The one in the following constructor is based on
-	#how many types of blocks need saving, 2**n
-	newGrid.blocks = bitField.create(newGrid.area, 2);
+	newGrid.cachedMeshes.resize(blockCount)
+	newGrid.blocks = bitField.create(newGrid.area, Util.bitCount(blockCount)-1);
+	newGrid.uniqueBlocks = blockCount;
 	return newGrid
 
 #Instance function start
@@ -76,20 +77,26 @@ func _rowToBits(rowNum:int, matchedValues:Array[int]):
 #Assumes row != 0
 func _findMasksInBitRow(row:int):
 	var masks:Array = [];
+	var remShift:int = 0;
 	while row != 0:
 		var curMask:int = 0;
-		var remShift:int = 0;
-		var maskSize = 0;
-		while row & 1 != 1:
+		var maskSize:int = 0;
+		while row & 1 == 0:
 			row = Util.rightShift(row, 1)
 			remShift += 1
 		while row & 1 == 1:
 			curMask = (curMask << 1) + 1
 			row = Util.rightShift(row, 1)
-			maskSize += 1
-		curMask <<= remShift
+			maskSize += 1;
+		curMask <<= remShift;
 		masks.push_back([curMask, remShift, maskSize]);
+		remShift += maskSize;
 	return masks
+
+func reCacheMeshes(blocksChanged:Array[int]):
+	var newMesh:Array = greedyMesh(blocksChanged);
+	for block in blocksChanged.size():
+		cachedMeshes[blocksChanged[block]] = newMesh[block]
 
 #Assumes (requires) row length of no more than 64 (one box)
 func greedyMesh(blocksToBeMeshed:Array[int]):
