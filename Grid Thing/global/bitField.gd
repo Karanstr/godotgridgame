@@ -1,6 +1,7 @@
 class_name bitField
 
-const boxSize = 64 #64 bit Int
+static var boxSize = 64 #64 bit Int
+
 var totalPacks:int;
 var packSize:int;
 var packMask:int;
@@ -58,8 +59,6 @@ func modify(index:int, newVal:int):
 		print("Cannot access index " + String.num_int64(index))
 		return false
 	var boxNum:int = _getBox(index);
-	var box:int = data[boxNum]	
 	var oldValue:int = read(index);
-	box += Util.leftShift(newVal - oldValue, _getPadding(index, boxNum))
-	data[boxNum] = box
+	data[boxNum] += Util.leftShift(newVal - oldValue, _getPadding(index, boxNum))
 	return oldValue

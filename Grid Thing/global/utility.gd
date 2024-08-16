@@ -28,3 +28,21 @@ func rightShift(number:int, bits:int):
 		var saveB64:int = 1 << (63 - bits)
 		shiftedNumber |= saveB64
 	return shiftedNumber
+
+func findMasksInBitRow(row:int):
+	var masks:Array = [];
+	var remShift:int = 0;
+	while row != 0:
+		var curMask:int = 0;
+		var maskSize:int = 0;
+		while row & 1 == 0:
+			row = Util.rightShift(row, 1)
+			remShift += 1
+		while row & 1 == 1:
+			curMask = (curMask << 1) + 1
+			row = Util.rightShift(row, 1)
+			maskSize += 1;
+		curMask <<= remShift;
+		masks.push_back([curMask, remShift, maskSize]);
+		remShift += maskSize;
+	return masks

@@ -1,8 +1,14 @@
 Todo
+	- Add saving and loadng of grid
+	
+	
+	
+	
+	Todo I Don't Wanna Do
+	- Clean up/optimise collision meshing 
 	- Implement multi chunk(64x64 blocks) objects
 	- Figure out sleeping issue when updating collision boxes
-	- Add saving and loadng of grid
-	- Clean up/optimise collision meshing 
+
 
 Done
 	-/ Create bitField Class
@@ -10,8 +16,4 @@ Done
 	-/ Implement area reading of a bitField
 	-/ Implement binary greedymeshing
 	-/ Create collision boxes based on meshes
-
-When (if) the engine fails us
-	- Performant raystepping
-	- - Implement binary corner detection
-	- - - Figure out how to handle transition between multiple bitBoxes
+	-/ Make _rowToBits() only use a single box
