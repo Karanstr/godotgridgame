@@ -9,7 +9,7 @@ var blockLength:Vector2;
 var yOffset:int;
 var area:int;
 var cachedMeshes:Array = [];
-#var uniqueBlocks:int;
+var uniqueBlocks:int;
 
 #Constructor
 static func create(dims: Vector2i, conLength: Vector2, blockCount:int):
@@ -22,7 +22,7 @@ static func create(dims: Vector2i, conLength: Vector2, blockCount:int):
 	newGrid.area = dims.x * dims.y;
 	newGrid.cachedMeshes.resize(blockCount)
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitCount(blockCount)-1);
-	#newGrid.uniqueBlocks = blockCount;
+	newGrid.uniqueBlocks = blockCount;
 	return newGrid
 
 #Instance function start
