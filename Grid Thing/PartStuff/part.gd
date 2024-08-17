@@ -1,9 +1,9 @@
-extends RigidBody2D
+extends Node2D
 
 var grid:Grid = Grid.create(Vector2i(8,8), Vector2(50,50), 2);
+var com = grid.com
 
 func _ready():
-	center_of_mass = grid.com 
 	for i in range(grid.area):
 		grid.assign(i, 1)
 	grid.reCacheMeshes([0, 1]); #Initial Caching
@@ -12,9 +12,9 @@ func _ready():
 	pass
 
 func _process(_delta):
-	if (grid.com != center_of_mass):
+	if (grid.com != com):
 		queue_redraw()
-		grid.com = center_of_mass
+		grid.com = com
 	if Input.is_action_just_pressed("click"):
 		var keys:Array[int] = grid.pointToKey(get_local_mouse_position())
 		var key:int = keys[0]
@@ -24,11 +24,6 @@ func _process(_delta):
 			grid.assign(key, newVal)
 			_updateMeshes([oldVal, newVal])
 			queue_redraw()
-			applyBetterForce(Vector2(100,0), Vector2(0, -5))
-			applyBetterForce(Vector2(100,0), Vector2(0, 5))
-
-func applyBetterForce(force:Vector2, offset:Vector2):
-	apply_force(force.rotated(rotation), position + (center_of_mass + offset).rotated(rotation))
 
 func alignMesh(mesh:Rect2i):
 	var alignedRect:Rect2 = Rect2(mesh)
@@ -70,7 +65,8 @@ func _draw():
 			for rect in grid.cachedMeshes[blockMeshes].size():
 				var alignedRect:Rect2 = alignMesh(grid.cachedMeshes[blockMeshes][rect])
 				draw_rect(alignedRect, color)
-	draw_rect(Rect2(center_of_mass, grid.length/50), 'blue', true) #Display COM
+	draw_rect(Rect2(Vector2(0,0), grid.length/50), 'blue', true) #Display COM
+
 	print("Draw complete")
 
 func _makeColBox(rectMesh:Rect2):
