@@ -52,7 +52,7 @@ func readSection(packsRemaining:int, startIndex:int):
 	return section
 
 func modify(index:int, newVal:int):
-	if (Util.bitCount(newVal) > packSize):
+	if (Util.bitsToStore(newVal) > packSize):
 		print("Value exceeds packing size: " + String.num_int64(newVal))
 		return false
 	if (index >= totalPacks):

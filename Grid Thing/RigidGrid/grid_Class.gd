@@ -2,41 +2,44 @@ class_name Grid
 
 #Variables
 var blocks:bitField;
-var dimensions:Vector2i;
+var dimensions:Vector2i = Vector2i(64,64);
 var length:Vector2;
 var com:Vector2;
 var blockLength:Vector2;
 var yOffset:int;
-var area:int;
+var area:int = 64*64;
 var cachedMeshes:Array = [];
 var uniqueBlocks:int;
 
 #Constructor
-static func create(dims: Vector2i, conLength: Vector2, blockCount:int):
+static func create(conLength: Vector2, blockCount:int):
 	var newGrid = Grid.new();
-	newGrid.dimensions = dims;
 	newGrid.length = conLength;
 	newGrid.com = conLength/2;
-	newGrid.blockLength = conLength/Vector2(dims);
-	newGrid.yOffset = Util.bitCount(dims.x);
-	newGrid.area = dims.x * dims.y;
+	newGrid.blockLength = conLength/Vector2(newGrid.dimensions);
+	newGrid.yOffset = Util.bitsToStore(63);
 	newGrid.cachedMeshes.resize(blockCount)
-	newGrid.blocks = bitField.create(newGrid.area, Util.bitCount(blockCount)-1);
+	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(blockCount));
 	newGrid.uniqueBlocks = blockCount;
 	return newGrid
 
-#Instance function start
-func decode(key:int):
+func resizeBoundary(newLength: Vector2) -> void:
+	#change blockLength
+	#change com
+	#change length
+	pass
+
+func decode(key:int) -> Vector2i:
 	return Vector2i(key%dimensions.x, key/dimensions.x)
 
-func encode(coord:Vector2i):
+func encode(coord:Vector2i) -> int:
 	return coord.y*dimensions.x + coord.x
 
-func assign(key:int, value:int):
+func assign(key:int, value:int) -> int:
 	var oldVal = blocks.modify(key, value);
 	return oldVal
 
-func read(key:int):
+func read(key:int) -> int:
 	return blocks.read(key)
 
 func pointToKey(point:Vector2):
@@ -55,7 +58,7 @@ func keyToPoint(key):
 	return blockLength*Vector2(decode(key)) - com
 
 #Will only read up to the first 64 packs of the row
-func _rowToInt(rowNum:int, matchedValues:Array[int]):
+func _rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
 	var rows:Array = [];
 	for block in matchedValues.size():
 		rows.push_back(0)
@@ -72,13 +75,7 @@ func _rowToInt(rowNum:int, matchedValues:Array[int]):
 		packCounter += 1;
 	return rows
 
-func reCacheMeshes(blocksChanged:Array[int]):
-	var newMesh:Array = greedyMesh(blocksChanged);
-	for block in blocksChanged.size():
-		cachedMeshes[blocksChanged[block]] = newMesh[block]
-
-#Cannot mesh grids larger than 64 in any dimension
-func greedyMesh(blocksToBeMeshed:Array[int]):
+func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
 	var blockGrids:Array = [];
 	var meshedBoxes:Array = []
 	#Set up initial arrays
@@ -112,3 +109,8 @@ func greedyMesh(blocksToBeMeshed:Array[int]):
 								break #Mask can
 						meshedBoxes[block].push_back(box);
 	return meshedBoxes
+
+func reCacheMeshes(blocksChanged:Array[int]):
+	var newMesh:Array = greedyMesh(blocksChanged);
+	for block in blocksChanged.size():
+		cachedMeshes[blocksChanged[block]] = newMesh[block]
