@@ -2,19 +2,21 @@ class_name Grid
 
 #Variables
 var blocks:bitField;
-var dimensions:Vector2i = Vector2i(64,64);
+var dimensions:Vector2i;
 var length:Vector2;
 var com:Vector2;
 var blockLength:Vector2;
 var yOffset:int;
-var area:int = 64*64;
+var area:int;
 var cachedMeshes:Array = [];
 var uniqueBlocks:int;
 
 #Constructor
-static func create(conLength: Vector2, blockCount:int):
+static func create(conLength: Vector2, blockCount:int, dims:Vector2i = Vector2i(64,64)):
 	var newGrid = Grid.new();
 	newGrid.length = conLength;
+	newGrid.dimensions = dims;
+	newGrid.area = newGrid.dimensions.x * newGrid.dimensions.y;
 	newGrid.com = conLength/2;
 	newGrid.blockLength = conLength/Vector2(newGrid.dimensions);
 	newGrid.yOffset = Util.bitsToStore(63);
@@ -22,12 +24,6 @@ static func create(conLength: Vector2, blockCount:int):
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(blockCount));
 	newGrid.uniqueBlocks = blockCount;
 	return newGrid
-
-func resizeBoundary(newLength: Vector2) -> void:
-	#change blockLength
-	#change com
-	#change length
-	pass
 
 func decode(key:int) -> Vector2i:
 	return Vector2i(key%dimensions.x, key/dimensions.x)
@@ -114,3 +110,16 @@ func reCacheMeshes(blocksChanged:Array[int]):
 	var newMesh:Array = greedyMesh(blocksChanged);
 	for block in blocksChanged.size():
 		cachedMeshes[blocksChanged[block]] = newMesh[block]
+
+#func saveData():
+	#print(blocks.packSize)
+	#var saveData:String = ""
+	#for i in area:
+		#saveData += " " + String.num_int64(read(i))
+	#print(saveData)
+	#return saveData
+#
+#func loadData(data:String, packSize:int):
+	#var datas:Array[String] = data.split(" ", false)
+	#print(datas)
+	#pass
