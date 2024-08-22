@@ -9,7 +9,7 @@ func addNewChunk(chunkLocation:Vector2i):
 	var newChunk:Node2D = Node2D.new();
 	newChunk.set_script(chunkScript)
 	newChunk.name = "0"
-	newChunk.init(Vector2(500, 500), 8)
+	newChunk.init(Vector2(50, 50), 2, Vector2i(8,8))
 	add_child(newChunk)
 
 func removeChunk(chunkName:String):

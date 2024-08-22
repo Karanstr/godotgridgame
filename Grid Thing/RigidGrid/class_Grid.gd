@@ -6,7 +6,6 @@ var dimensions:Vector2i;
 var length:Vector2;
 var com:Vector2;
 var blockLength:Vector2;
-var yOffset:int;
 var area:int;
 var cachedMeshes:Array = [];
 var uniqueBlocks:int;
@@ -14,15 +13,20 @@ var uniqueBlocks:int;
 #Constructor
 static func create(conLength: Vector2, blockCount:int, dims:Vector2i = Vector2i(64,64)):
 	var newGrid = Grid.new();
-	newGrid.length = conLength;
+	newGrid.uniqueBlocks = blockCount;
 	newGrid.dimensions = dims;
 	newGrid.area = newGrid.dimensions.x * newGrid.dimensions.y;
+	
+	newGrid.length = conLength;
 	newGrid.com = conLength/2;
 	newGrid.blockLength = conLength/Vector2(newGrid.dimensions);
-	newGrid.yOffset = Util.bitsToStore(63);
-	newGrid.cachedMeshes.resize(blockCount)
+	
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(blockCount));
-	newGrid.uniqueBlocks = blockCount;
+	
+	for block in blockCount:
+		newGrid.cachedMeshes.push_back([]);
+	print(newGrid.cachedMeshes)
+	
 	return newGrid
 
 func decode(key:int) -> Vector2i:
@@ -55,7 +59,7 @@ func keyToPoint(key):
 
 #Will only read up to the first 64 packs of the row
 func _rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
-	var rows:Array = [];
+	var rows:Array[int] = [];
 	for block in matchedValues.size():
 		rows.push_back(0)
 	var index:int = dimensions.x*rowNum;
