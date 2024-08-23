@@ -1,12 +1,17 @@
 Todo
-	- Add saving and loadng of grid
+	- Clean up/optimise collision meshing 
+	- - Mesh Culling to minimize collision objects in scene at once
 	
+	- Implement Center of Mass
+	- - Allow render and collision shapes to move based on center of mass
+	- - Allow automatic recalculation of center of mass
 	
-	
+	- Implement multi chunk(64x64 blocks) objects
+	- -/ Add infrastructure for instancing chunks
+	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
 	
 	Todo I Don't Wanna Do
-	- Clean up/optimise collision meshing 
-	- Implement multi chunk(64x64 blocks) objects
+	- Add saving and loadng of grid
 	- Figure out sleeping issue when updating collision boxes
 
 

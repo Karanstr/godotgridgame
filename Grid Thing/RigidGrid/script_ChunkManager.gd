@@ -1,6 +1,6 @@
 extends Node
 
-var chunkScript = load("res://RigidGrid/chunk_Script.gd")
+var chunkScript = load("res://RigidGrid/script_Chunk.gd")
 
 func _ready():
 	addNewChunk(Vector2i(0,0))
