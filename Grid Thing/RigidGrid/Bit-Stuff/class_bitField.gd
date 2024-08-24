@@ -10,7 +10,7 @@ var totalBoxes:int;
 var data:Array[int] = [];
 
 #Constructor
-static func create(packNum:int, packSiz:int):
+static func create(packNum:int, packSiz:int) -> bitField:
 	var field = bitField.new();
 	field.totalPacks = packNum;
 	field.packSize = packSiz; 

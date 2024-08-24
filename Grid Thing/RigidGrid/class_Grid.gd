@@ -11,7 +11,7 @@ var cachedMeshes:Array = [];
 var uniqueBlocks:int;
 
 #Constructor
-static func create(conLength: Vector2, blockCount:int, dims:Vector2i = Vector2i(64,64)):
+static func create(conLength:Vector2, blockCount:int, dims:Vector2i = Vector2i(64,64)) -> Grid:
 	var newGrid = Grid.new();
 	newGrid.uniqueBlocks = blockCount;
 	newGrid.dimensions = dims;
@@ -25,7 +25,6 @@ static func create(conLength: Vector2, blockCount:int, dims:Vector2i = Vector2i(
 	
 	for block in blockCount:
 		newGrid.cachedMeshes.push_back([]);
-	print(newGrid.cachedMeshes)
 	
 	return newGrid
 
@@ -42,7 +41,7 @@ func assign(key:int, value:int) -> int:
 func read(key:int) -> int:
 	return blocks.read(key)
 
-func pointToKey(point:Vector2):
+func pointToKey(point:Vector2) -> Array[int]:
 	var offset:Vector2 = Vector2(.01,.01)
 	var keys:Array[int] = [];
 	for x in range(0, 2):
@@ -54,7 +53,7 @@ func pointToKey(point:Vector2):
 				keys.append(-1)
 	return keys
 
-func keyToPoint(key):
+func keyToPoint(key:int) -> Vector2:
 	return blockLength*Vector2(decode(key)) - com
 
 #Will only read up to the first 64 packs of the row
@@ -110,20 +109,7 @@ func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
 						meshedBoxes[block].push_back(box);
 	return meshedBoxes
 
-func reCacheMeshes(blocksChanged:Array[int]):
+func reCacheMeshes(blocksChanged:Array[int]) -> void:
 	var newMesh:Array = greedyMesh(blocksChanged);
 	for block in blocksChanged.size():
 		cachedMeshes[blocksChanged[block]] = newMesh[block]
-
-#func saveData():
-	#print(blocks.packSize)
-	#var saveData:String = ""
-	#for i in area:
-		#saveData += " " + String.num_int64(read(i))
-	#print(saveData)
-	#return saveData
-#
-#func loadData(data:String, packSize:int):
-	#var datas:Array[String] = data.split(" ", false)
-	#print(datas)
-	#pass
