@@ -8,22 +8,24 @@ var com:Vector2;
 var blockLength:Vector2;
 var area:int;
 var cachedMeshes:Array = [];
-var uniqueBlocks:int;
+var uniqueBlocks:int = 0;
+var blockReference:BlockTypes;
 
 #Constructor
-static func create(conLength:Vector2, blockCount:int, dims:Vector2i = Vector2i(64,64)) -> Grid:
+static func create(length:Vector2, blockReference:BlockTypes, dimensions:Vector2i = Vector2i(64,64)) -> Grid:
 	var newGrid = Grid.new();
-	newGrid.uniqueBlocks = blockCount;
-	newGrid.dimensions = dims;
+	newGrid.blockReference = blockReference;
+	newGrid.dimensions = dimensions;
 	newGrid.area = newGrid.dimensions.x * newGrid.dimensions.y;
 	
-	newGrid.length = conLength;
-	newGrid.com = conLength/2;
-	newGrid.blockLength = conLength/Vector2(newGrid.dimensions);
+	newGrid.length = length;
+	newGrid.com = length/2;
+	newGrid.blockLength = length/Vector2(newGrid.dimensions);
 	
-	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(blockCount));
+	newGrid.uniqueBlocks = newGrid.blockReference.array.size()
+	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(newGrid.uniqueBlocks));
 	
-	for block in blockCount:
+	for block in newGrid.uniqueBlocks:
 		newGrid.cachedMeshes.push_back([]);
 	
 	return newGrid

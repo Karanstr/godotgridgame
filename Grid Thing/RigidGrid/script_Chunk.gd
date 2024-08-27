@@ -1,13 +1,15 @@
 extends Node2D
 
 var grid:Grid; 
-var blockTypes; #Make blockType class and store types in there 
-# ^^^^ Maybe move inside of Grid?
-var uniqueBlockData; #NBT Data, Store things like rotation, power level, etc..
-# ^^^^ Maybe move inside of Grid?
+var blockTypes = BlockTypes.create()
 
-func init(gridSize:Vector2, uniqueBlocks:int, gridDimensions:Vector2i = Vector2i(64,64)):
-	grid = Grid.create(gridSize, uniqueBlocks, gridDimensions)
+func defineBlocks(object_BlockTypes):
+	object_BlockTypes.addBlock("Blue", "blue", false)
+	object_BlockTypes.addBlock("Yellow", "yellow", true)
+
+func init(gridSize:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
+	defineBlocks(blockTypes)
+	grid = Grid.create(gridSize, blockTypes, gridDimensions)
 	grid.reCacheMeshes([0]); #Initial meshing for initial value
 	#_addPhysicsMeshes() #Initial value probably doesn't have physics mesh?
 	_addRenderMeshes(0)
@@ -33,12 +35,7 @@ func _updateMeshes(changedVals:Array[int]):
 		_addPhysicsMeshes(change)
 
 func _addRenderMeshes(blockType):
-	var color;
-	match blockType: #Eventually reference block datas
-		0:
-			color = "blue"
-		1:
-			color = "yellow"
+	var color = blockTypes.array[blockType].color;
 	for meshNum in grid.cachedMeshes[blockType].size():
 		var mesh = grid.cachedMeshes[blockType][meshNum]
 		var polygon = _makeRenderPolygon(mesh, color)
@@ -50,7 +47,7 @@ func _removeRenderMeshes(blockType):
 		get_node(encodeMeshName(meshNum, blockType)).free()
 
 func _addPhysicsMeshes(blockType:int):
-	if (blockType != 0): #If blockType has a collision mesh, reference block datas?
+	if (blockTypes.array[blockType].collision == true):
 		for meshNum in grid.cachedMeshes[blockType].size():
 			var mesh = grid.cachedMeshes[blockType][meshNum]
 			var colBox:CollisionShape2D = _makeColBox(mesh);
@@ -58,7 +55,7 @@ func _addPhysicsMeshes(blockType:int):
 			get_node("../../").add_child(colBox)
 
 func _removePhysicsMeshes(blockType:int):
-	if (blockType != 0): #If blockType has a collision mesh, reference block datas?
+	if (blockTypes.array[blockType].collision == true):
 		for meshNum in grid.cachedMeshes[blockType].size():
 			get_node("../../" + encodeMeshName(meshNum, blockType)).free()
 

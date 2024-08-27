@@ -1,7 +1,4 @@
 Todo
-	- Add class for storing extensive block data
-
-	
 	- Clean up/optimise collision meshing 
 	- - Mesh Culling to minimize collision objects in scene at once
 	
@@ -25,3 +22,4 @@ Done
 	-/ Implement binary greedymeshing
 	-/ Create collision boxes based on meshes
 	-/ Make _rowToBits() only use a single box
+	-/ Add class for storing extensive block data
