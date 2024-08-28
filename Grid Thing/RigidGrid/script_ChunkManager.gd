@@ -1,4 +1,4 @@
-extends Node
+extends Node2D
 
 var chunkScript = load("res://RigidGrid/script_Chunk.gd")
 
