@@ -1,6 +1,6 @@
 Todo
-	- Clean up/optimise collision meshing 
-	- - Mesh Culling to minimize collision objects in scene at once
+	- Grid QOL
+	- - Raystepping between mouse prior and current positions to prevent skipping while dragging? 
 	
 	- Implement Center of Mass
 	- - Allow render and collision shapes to move based on center of mass
@@ -10,10 +10,12 @@ Todo
 	- -/ Add infrastructure for instancing chunks
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
 	
-	Todo I Don't Wanna Do
-	- Add saving and loadng of grid
-	- Figure out sleeping issue when updating collision boxes
-
+	- Stuff I don't want to do
+	- - Add saving and loading of grid
+	- - Figure out sleeping issue when updating collision boxes
+	
+	- Clean up/optimise collision meshing 
+	- - Mesh culling to minimize collision objects in scene at once
 
 Done
 	-/ Create bitField Class
@@ -23,3 +25,5 @@ Done
 	-/ Create collision boxes based on meshes
 	-/ Make _rowToBits() only use a single box
 	-/ Add class for storing extensive block data
+	-/ Allow drag editing of a chunk
+	-/ Allow chunks to toggle edit-ability

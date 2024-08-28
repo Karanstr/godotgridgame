@@ -1,7 +1,10 @@
 extends Node2D
 
 var grid:Grid; 
-var blockTypes = BlockTypes.create()
+var blockTypes:BlockTypes = BlockTypes.create();
+@export var editable:bool = true;
+
+var lastEditKey:int;
 
 func defineBlocks(object_BlockTypes):
 	object_BlockTypes.addBlock("Blue", "blue", false)
@@ -16,14 +19,18 @@ func init(gridSize:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
 	pass
 
 func _process(_delta):
-	if Input.is_action_just_pressed("click"):
-		var keys:Array[int] = grid.pointToKey(get_local_mouse_position())
-		var key:int = keys[0]
-		if key != -1:
-			var oldVal:int = grid.read(key)
-			var newVal:int = 1 if oldVal == 0 else 0;
-			grid.assign(key, newVal)
-			_updateMeshes([oldVal, newVal])
+	if (editable):
+		if Input.is_action_pressed("click"):
+			var keys:Array[int] = grid.pointToKey(get_local_mouse_position())
+			var key:int = keys[0]
+			if key != -1 && key != lastEditKey:
+				lastEditKey = key
+				var oldVal:int = grid.read(key)
+				var newVal:int = 1 if oldVal == 0 else 0;
+				grid.assign(key, newVal)
+				_updateMeshes([oldVal, newVal])
+		if Input.is_action_just_released("click"):
+			lastEditKey = -1
 
 func _updateMeshes(changedVals:Array[int]):
 	for change in changedVals:
