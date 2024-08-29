@@ -7,7 +7,7 @@ var blockTypes:BlockTypes = BlockTypes.create();
 var lastEditKey:int;
 
 func defineBlocks(object_BlockTypes):
-	object_BlockTypes.addBlock("Blue", "blue", false)
+	object_BlockTypes.addBlock("null", "transparent", false)
 	object_BlockTypes.addBlock("Yellow", "yellow", true)
 
 func init(gridSize:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
@@ -31,6 +31,8 @@ func _process(_delta):
 				_updateMeshes([oldVal, newVal])
 		if Input.is_action_just_released("click"):
 			lastEditKey = -1
+
+#region Meshing
 
 func _updateMeshes(changedVals:Array[int]):
 	for change in changedVals:
@@ -96,3 +98,4 @@ func _meshToLocalRect(mesh:Rect2i):
 	alignedRect.position *= grid.blockLength
 	alignedRect.size *= grid.blockLength
 	return alignedRect
+#endregion

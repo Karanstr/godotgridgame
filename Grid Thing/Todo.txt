@@ -1,21 +1,22 @@
 Todo
-	- Grid QOL
-	- - Raystepping between mouse prior and current positions to prevent skipping while dragging? 
-	
 	- Implement Center of Mass
 	- - Allow render and collision shapes to move based on center of mass
 	- - Allow automatic recalculation of center of mass
 	
 	- Implement multi chunk(64x64 blocks) objects
-	- -/ Add infrastructure for instancing chunks
+	- -k Add infrastructure for instancing chunks
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
-	
-	- Stuff I don't want to do
-	- - Add saving and loading of grid
-	- - Figure out sleeping issue when updating collision boxes
+	- - Allow center of mass to be influenced by all chunks properly
 	
 	- Clean up/optimise collision meshing 
-	- - Mesh culling to minimize collision objects in scene at once
+	- - Mesh culling to minimize collision objects in scene at once (2d Occlusion culling)
+	
+	- Grid
+	- - Raystepping between mouse prior and current positions to prevent skipping while dragging? 
+	- - Add saving and loading of grid
+	
+	- Other Collision Stuff
+	- - Figure out sleeping issue when updating collision boxes
 
 Done
 	-/ Create bitField Class

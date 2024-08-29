@@ -30,6 +30,7 @@ static func create(length:Vector2, blockReference:BlockTypes, dimensions:Vector2
 	
 	return newGrid
 
+#region I/O
 func decode(key:int) -> Vector2i:
 	return Vector2i(key%dimensions.x, key/dimensions.x)
 
@@ -58,6 +59,9 @@ func pointToKey(point:Vector2) -> Array[int]:
 func keyToPoint(key:int) -> Vector2:
 	return blockLength*Vector2(decode(key)) - com
 
+#endregion
+
+#region Meshing
 #Will only read up to the first 64 packs of the row
 func _rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
 	var rows:Array[int] = [];
@@ -107,7 +111,7 @@ func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
 								blockGrids[block][curRowSearching] &= ~curMask; #Eliminate mask from row
 								box.size.y += 1
 							else:
-								break #Mask can
+								break #Mask does not exist in row, shape is complete
 						meshedBoxes[block].push_back(box);
 	return meshedBoxes
 
@@ -115,3 +119,5 @@ func reCacheMeshes(blocksChanged:Array[int]) -> void:
 	var newMesh:Array = greedyMesh(blocksChanged);
 	for block in blocksChanged.size():
 		cachedMeshes[blocksChanged[block]] = newMesh[block]
+
+#endregion
