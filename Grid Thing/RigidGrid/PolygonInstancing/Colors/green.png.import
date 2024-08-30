@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c14tcd0xk3f8"
-path="res://.godot/imported/colorsquare.png-7548574866d6bf5173ab6e63dab9e2a6.ctex"
+uid="uid://bhw67len757pr"
+path="res://.godot/imported/green.png-0c8c0e6165b8e4b6d054e5c61c3965b5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://RigidGrid/PolygonInstancing/colorsquare.png"
-dest_files=["res://.godot/imported/colorsquare.png-7548574866d6bf5173ab6e63dab9e2a6.ctex"]
+source_file="res://RigidGrid/PolygonInstancing/Colors/green.png"
+dest_files=["res://.godot/imported/green.png-0c8c0e6165b8e4b6d054e5c61c3965b5.ctex"]
 
 [params]
 
