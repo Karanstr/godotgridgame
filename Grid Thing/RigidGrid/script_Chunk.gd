@@ -1,7 +1,5 @@
 extends Node2D
 
-var classPoly = preload("res://RigidGrid/PolygonInstancing/PolyInstance.scn")
-
 var grid:Grid; 
 var thisblockTypes:BlockTypes;
 @export var editable:bool = true;
@@ -42,7 +40,7 @@ func _updateMeshes(changedVals:Array[int]):
 		_addPhysicsMeshes(change)
 
 func _addRenderMeshes(blockType):
-	var meshImage = thisblockTypes.array[blockType].image;
+	var meshImage = thisblockTypes.array[blockType].texture;
 	for meshNum in grid.cachedMeshes[blockType].size():
 		var mesh = grid.cachedMeshes[blockType][meshNum]
 		var polygon = _makeRenderPolygon(mesh, meshImage)
@@ -71,16 +69,20 @@ func encodeMeshName(meshNum, blockType):
 	#Chunk Name only matters with collision boxes, but I don't care enough to remove it from the render polygons
 	return name + " " + String.num_int64((meshNum << grid.blocks.packSize) + blockType)
 
-func _makeRenderPolygon(meshVerts, meshImage):
-	var rect = _meshToLocalRect(meshVerts);
-	var polygon = classPoly.instantiate();
+func _makeRenderPolygon(points, texture):
+	var rect = _meshToLocalRect(points);
 	var data:PackedVector2Array = PackedVector2Array();
 	data.push_back(rect.position);
 	data.push_back(Vector2(rect.position.x, rect.position.y + rect.size.y));
 	data.push_back(rect.position + rect.size);
 	data.push_back(Vector2(rect.position.x + rect.size.x, rect.position.y));
-	polygon.setUp(data, meshImage, grid.blockLength)
 	
+	var polygon = Polygon2D.new();
+	polygon.texture = texture
+	polygon.texture_scale = Vector2(1,1)/(grid.blockLength/texture.get_size())
+	polygon.texture_filter = 1
+	polygon.texture_repeat = 2
+	polygon.polygon = data;
 	return polygon
 
 func _makeColBox(mesh:Rect2i):

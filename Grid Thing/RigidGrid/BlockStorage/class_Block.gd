@@ -1,16 +1,16 @@
 class_name Block
 
 var name:String;
-var image;
+var texture;
 var collision:bool;
 var weight:int
 
 #Constructor
-static func create(blockName:String, blockColor, doesCollide:bool, weight:int = 0) -> Block:
+static func create(blockName:String, image, doesCollide:bool, weight:int = 0) -> Block:
 	var block:Block = Block.new();
 	
 	block.name = blockName;
-	block.image = blockColor;
+	block.texture = image;
 	block.collision = doesCollide;
 	block.weight = weight;
 	
