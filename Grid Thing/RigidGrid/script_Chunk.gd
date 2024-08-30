@@ -1,17 +1,15 @@
 extends Node2D
 
+var classPoly = preload("res://RigidGrid/PolygonInstancing/PolyInstance.scn")
+
 var grid:Grid; 
-var blockTypes:BlockTypes = BlockTypes.create();
+var thisblockTypes:BlockTypes;
 @export var editable:bool = true;
 
 var lastEditKey:int;
 
-func defineBlocks(object_BlockTypes):
-	object_BlockTypes.addBlock("null", "transparent", false)
-	object_BlockTypes.addBlock("Yellow", "yellow", true)
-
-func init(gridSize:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
-	defineBlocks(blockTypes)
+func init(gridSize:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
+	thisblockTypes = blockTypes
 	grid = Grid.create(gridSize, blockTypes, gridDimensions)
 	grid.reCacheMeshes([0]); #Initial meshing for initial value
 	#_addPhysicsMeshes() #Initial value probably doesn't have physics mesh?
@@ -44,10 +42,10 @@ func _updateMeshes(changedVals:Array[int]):
 		_addPhysicsMeshes(change)
 
 func _addRenderMeshes(blockType):
-	var color = blockTypes.array[blockType].color;
+	var meshImage = thisblockTypes.array[blockType].image;
 	for meshNum in grid.cachedMeshes[blockType].size():
 		var mesh = grid.cachedMeshes[blockType][meshNum]
-		var polygon = _makeRenderPolygon(mesh, color)
+		var polygon = _makeRenderPolygon(mesh, meshImage)
 		polygon.name = encodeMeshName(meshNum, blockType)
 		add_child(polygon)
 
@@ -56,7 +54,7 @@ func _removeRenderMeshes(blockType):
 		get_node(encodeMeshName(meshNum, blockType)).free()
 
 func _addPhysicsMeshes(blockType:int):
-	if (blockTypes.array[blockType].collision == true):
+	if (thisblockTypes.array[blockType].collision == true):
 		for meshNum in grid.cachedMeshes[blockType].size():
 			var mesh = grid.cachedMeshes[blockType][meshNum]
 			var colBox:CollisionShape2D = _makeColBox(mesh);
@@ -64,7 +62,7 @@ func _addPhysicsMeshes(blockType:int):
 			get_node("../../").add_child(colBox)
 
 func _removePhysicsMeshes(blockType:int):
-	if (blockTypes.array[blockType].collision == true):
+	if (thisblockTypes.array[blockType].collision == true):
 		for meshNum in grid.cachedMeshes[blockType].size():
 			get_node("../../" + encodeMeshName(meshNum, blockType)).free()
 
@@ -73,16 +71,16 @@ func encodeMeshName(meshNum, blockType):
 	#Chunk Name only matters with collision boxes, but I don't care enough to remove it from the render polygons
 	return name + " " + String.num_int64((meshNum << grid.blocks.packSize) + blockType)
 
-func _makeRenderPolygon(mesh, color):
-	var rect = _meshToLocalRect(mesh);
-	var polygon = Polygon2D.new();
+func _makeRenderPolygon(meshVerts, meshImage):
+	var rect = _meshToLocalRect(meshVerts);
+	var polygon = classPoly.instantiate();
 	var data:PackedVector2Array = PackedVector2Array();
 	data.push_back(rect.position);
 	data.push_back(Vector2(rect.position.x, rect.position.y + rect.size.y));
 	data.push_back(rect.position + rect.size);
 	data.push_back(Vector2(rect.position.x + rect.size.x, rect.position.y));
-	polygon.color = color;
-	polygon.polygon = data;
+	polygon.setUp(data, meshImage, grid.blockLength)
+	
 	return polygon
 
 func _makeColBox(mesh:Rect2i):
@@ -99,3 +97,5 @@ func _meshToLocalRect(mesh:Rect2i):
 	alignedRect.size *= grid.blockLength
 	return alignedRect
 #endregion
+
+#
