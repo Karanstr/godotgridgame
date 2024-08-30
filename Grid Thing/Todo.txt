@@ -1,4 +1,12 @@
 Todo
+	- Technical Things
+	- - Modify mesh rendering to support textures (sprites)
+	- - Object detection (bc non attached objects shouldn't be attached)
+	- - Add (two?) bits of info for everything to specify if it has special data
+	- - One bit for special data, one bit for whether that special data effects it visually
+	- - Way to store/recall special data
+	- - Don't greedy mesh objects with visually distinct special data
+	
 	- Implement Center of Mass
 	- - Allow render and collision shapes to move based on center of mass
 	- - Allow automatic recalculation of center of mass
@@ -28,3 +36,6 @@ Done
 	-/ Add class for storing extensive block data
 	-/ Allow drag editing of a chunk
 	-/ Allow chunks to toggle edit-ability
+
+Links
+	https://www.pixilart.com/draw
