@@ -76,13 +76,10 @@ func _makeRenderPolygon(points, texture):
 	data.push_back(Vector2(rect.position.x, rect.position.y + rect.size.y));
 	data.push_back(rect.position + rect.size);
 	data.push_back(Vector2(rect.position.x + rect.size.x, rect.position.y));
-	
 	var polygon = Polygon2D.new();
-	polygon.texture = texture
-	polygon.texture_scale = Vector2(1,1)/(grid.blockLength/texture.get_size())
-	polygon.texture_filter = 1
-	polygon.texture_repeat = 2
 	polygon.polygon = data;
+	polygon.texture = texture;
+	polygon.texture_scale = texture.get_size()/grid.blockLength
 	return polygon
 
 func _makeColBox(mesh:Rect2i):
