@@ -1,4 +1,8 @@
 Todo
+	- Important
+	- - Figure out what to call the things the greedy mesher outputs
+	- ^ Because they aren't meshes, they're rectangles
+	
 	- Technical Things
 	- - Object detection (bc non attached objects shouldn't be attached)
 	- - Add (two?) bits of info for everything to specify if it has special data
@@ -7,6 +11,9 @@ Todo
 	- - Don't greedy mesh objects with visually distinct special data
 	
 	- Implement Center of Mass
+	- - Track total mass of object
+	- - Store point masses of each mesh in 2D Array
+	- - - Read cached point masses for blockTypes which weren't updated
 	- - Allow render and collision shapes to move based on center of mass
 	- - Allow automatic recalculation of center of mass
 	

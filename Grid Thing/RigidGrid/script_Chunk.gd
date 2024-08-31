@@ -36,8 +36,34 @@ func updateChunk(changedVals:Array[int]):
 
 #region Mass Juggling
 
+#Only based on changed vals rn, implement all vals
 func _updateCOM(changedVals:Array[int]):
-	pass
+	var pointMasses = reduceToPointMasses(changedVals)
+	var centerOfMass = Vector2(0,0);
+	var totalMass = 0
+	for point in pointMasses:
+		centerOfMass += Vector2(point.x, point.y) * Vector2(point.z, point.z)
+		totalMass += point.z
+	centerOfMass /= Vector2(totalMass, totalMass)
+	return centerOfMass
+
+
+func reduceToPointMasses(changedVals:Array[int]):
+	var reducedPointMasses:Array = [];
+	for blockType in changedVals:
+		for mesh in grid.cachedMeshes[blockType]:
+			var blockWeight = thisblockTypes.array[blockType].weight
+			if (blockWeight != 0):
+				reducedPointMasses.push_back(meshToPointMass(mesh, blockWeight))
+	return reducedPointMasses
+
+func meshToPointMass(mesh, weightPerBlock):
+	var numOfBlocks:int = mesh.size.x * mesh.size.y
+	var summedWeight:int = numOfBlocks * weightPerBlock
+	var meshInWorld = _meshToLocalRect(mesh)
+	var center = meshInWorld.position + meshInWorld.size/2
+	return Vector3(center.x, center.y, summedWeight)
+
 
 #endregion
 
@@ -108,6 +134,7 @@ func _meshToLocalRect(mesh:Rect2i):
 	alignedRect.position *= grid.blockLength
 	alignedRect.size *= grid.blockLength
 	return alignedRect
+
 #endregion
 
 #
