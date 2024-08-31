@@ -4,8 +4,8 @@ var chunkScript = preload("res://RigidGrid/script_Chunk.gd")
 var blockTypes:BlockTypes = BlockTypes.create();
 
 func defineBlocks(object_BlockTypes):
-	object_BlockTypes.addBlock("green", preload("res://RigidGrid/Textures/green.png"), false)
-	object_BlockTypes.addBlock("red", preload("res://RigidGrid/Textures/red.png"), true)
+	object_BlockTypes.addNewBlock("green", preload("res://RigidGrid/Textures/green.png"), false)
+	object_BlockTypes.addNewBlock("red", preload("res://RigidGrid/Textures/red.png"), true, 1)
 
 func _ready():
 	defineBlocks(blockTypes)

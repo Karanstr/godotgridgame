@@ -8,8 +8,8 @@ static func create() -> BlockTypes:
 	var newBlockTypes:BlockTypes = BlockTypes.new()
 	return newBlockTypes 
 
-func addBlock(name:String, texture, doesCollide:bool):
-	var newBlock:Block = Block.create(name, texture, doesCollide)
+func addNewBlock(name:String, texture, doesCollide:bool, weight:int = 0):
+	var newBlock:Block = Block.create(name, texture, doesCollide, weight)
 	array.push_back(newBlock)
 	return array.size()-1 #Index of new block
 

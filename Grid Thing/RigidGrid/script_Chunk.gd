@@ -3,12 +3,13 @@ extends Node2D
 var grid:Grid; 
 var thisblockTypes:BlockTypes;
 @export var editable:bool = true;
+var chunkCOM:Vector2;
 
 var lastEditKey:int;
 
 func init(gridSize:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	thisblockTypes = blockTypes
-	grid = Grid.create(gridSize, blockTypes, gridDimensions)
+	grid = Grid.create(gridSize, blockTypes.array.size(), gridDimensions)
 	grid.reCacheMeshes([0]); #Initial meshing for initial value
 	#_addPhysicsMeshes() #Initial value probably doesn't have physics mesh?
 	_addRenderMeshes(0)
@@ -24,9 +25,21 @@ func _process(_delta):
 				var oldVal:int = grid.read(key)
 				var newVal:int = 1 if oldVal == 0 else 0;
 				grid.assign(key, newVal)
-				_updateMeshes([oldVal, newVal])
+				updateChunk([oldVal, newVal])
 		if Input.is_action_just_released("click"):
 			lastEditKey = -1
+
+func updateChunk(changedVals:Array[int]):
+	_updateMeshes(changedVals)
+	_updateCOM(changedVals)
+	pass
+
+#region Mass Juggling
+
+func _updateCOM(changedVals:Array[int]):
+	pass
+
+#endregion
 
 #region Meshing
 
