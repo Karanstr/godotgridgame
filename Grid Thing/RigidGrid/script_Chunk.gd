@@ -35,30 +35,35 @@ func updateChunk(changedVals:Array[int], firstCall:bool = false):
 			_removeRenderBoxes(change)
 			_removePhysicsBoxes(change)
 	grid.reCacheRects(changedVals);
+	_updateCOM(changedVals, false)
 	for change in changedVals: #Add Current Boxes
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
-	#_updateCOM(changedVals)
+	
 
 #Rewrite COM stuff
 #region Mass Management
 
-func _updateCOM(changedVals:Array[int]):
-	for blockType in changedVals:
-		pointMasses[blockType] = _reduceToPointMasses(blockType);
+func _updateCOM(changedVals:Array[int], moveBoxes:bool = true):
 	var centerOfMass = Vector2(0,0);
 	var oldMass:int = chunkMass;
 	chunkMass = 0;
-	for point in pointMasses:
-		centerOfMass += Vector2(point.x * point.z, point.y * point.z)
-		chunkMass += point.z
+	for blockType in changedVals:
+		pointMasses[blockType] = _reduceToPointMasses(blockType);
+		for point in pointMasses[blockType]:
+			centerOfMass += Vector2(point.x * point.z, point.y * point.z)
+			chunkMass += point.z
 	centerOfMass /= Vector2(chunkMass, chunkMass)
 	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
+	if (moveBoxes):
+		#Change chunk offset to relocate render boxes
+		#Loop through each physics box to offset them from modified rigidGrid origin? 
+		pass
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):
 	var blockPointMasses:Array = [];
-	for recti in grid.cachedMeshes[blockType]:
+	for recti in grid.cachedRects[blockType]:
 		var blockWeight = thisblockTypes.array[blockType].weight
 		if (blockWeight != 0):
 			blockPointMasses.push_back(_rectToPointMass(recti, blockWeight))
