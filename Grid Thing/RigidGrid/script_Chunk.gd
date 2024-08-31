@@ -4,22 +4,22 @@ var grid:Grid;
 var thisblockTypes:BlockTypes;
 @export var editable:bool = true;
 var chunkCOM:Vector2;
+var pointMasses:Array = []
+var chunkMass:int = 0
 
 var lastEditKey:int;
 
 func init(gridSize:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	thisblockTypes = blockTypes
+	for block in blockTypes.array.size():
+		pointMasses.push_back([])
 	grid = Grid.create(gridSize, blockTypes.array.size(), gridDimensions)
-	grid.reCacheMeshes([0]); #Initial meshing for initial value
-	#_addPhysicsMeshes() #Initial value probably doesn't have physics mesh?
-	_addRenderMeshes(0)
-	pass
+	updateChunk([0], true)
 
 func _process(_delta):
 	if (editable):
 		if Input.is_action_pressed("click"):
-			var keys:Array[int] = grid.pointToKey(get_local_mouse_position())
-			var key:int = keys[0]
+			var key:int = grid.pointToKey(get_local_mouse_position())[0]
 			if key != -1 && key != lastEditKey:
 				lastEditKey = key
 				var oldVal:int = grid.read(key)
@@ -29,87 +29,84 @@ func _process(_delta):
 		if Input.is_action_just_released("click"):
 			lastEditKey = -1
 
-func updateChunk(changedVals:Array[int]):
-	_updateMeshes(changedVals)
-	_updateCOM(changedVals)
-	pass
+func updateChunk(changedVals:Array[int], firstCall:bool = false):
+	if (!firstCall):
+		for change in changedVals: #Remove Old Boxes
+			_removeRenderBoxes(change)
+			_removePhysicsBoxes(change)
+	grid.reCacheRects(changedVals);
+	for change in changedVals: #Add Current Boxes
+		_addRenderBoxes(change)
+		_addPhysicsBoxes(change)
+	#_updateCOM(changedVals)
 
-#region Mass Juggling
+#Rewrite COM stuff
+#region Mass Management
 
-#Only based on changed vals rn, implement all vals
 func _updateCOM(changedVals:Array[int]):
-	var pointMasses = reduceToPointMasses(changedVals)
+	for blockType in changedVals:
+		pointMasses[blockType] = _reduceToPointMasses(blockType);
 	var centerOfMass = Vector2(0,0);
-	var totalMass = 0
+	var oldMass:int = chunkMass;
+	chunkMass = 0;
 	for point in pointMasses:
-		centerOfMass += Vector2(point.x, point.y) * Vector2(point.z, point.z)
-		totalMass += point.z
-	centerOfMass /= Vector2(totalMass, totalMass)
+		centerOfMass += Vector2(point.x * point.z, point.y * point.z)
+		chunkMass += point.z
+	centerOfMass /= Vector2(chunkMass, chunkMass)
+	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
 	return centerOfMass
 
+func _reduceToPointMasses(blockType:int):
+	var blockPointMasses:Array = [];
+	for recti in grid.cachedMeshes[blockType]:
+		var blockWeight = thisblockTypes.array[blockType].weight
+		if (blockWeight != 0):
+			blockPointMasses.push_back(_rectToPointMass(recti, blockWeight))
+	return blockPointMasses
 
-func reduceToPointMasses(changedVals:Array[int]):
-	var reducedPointMasses:Array = [];
-	for blockType in changedVals:
-		for mesh in grid.cachedMeshes[blockType]:
-			var blockWeight = thisblockTypes.array[blockType].weight
-			if (blockWeight != 0):
-				reducedPointMasses.push_back(meshToPointMass(mesh, blockWeight))
-	return reducedPointMasses
-
-func meshToPointMass(mesh, weightPerBlock):
-	var numOfBlocks:int = mesh.size.x * mesh.size.y
+func _rectToPointMass(recti:Rect2i, weightPerBlock:int):
+	var numOfBlocks:int = recti.size.x * recti.size.y
 	var summedWeight:int = numOfBlocks * weightPerBlock
-	var meshInWorld = _meshToLocalRect(mesh)
-	var center = meshInWorld.position + meshInWorld.size/2
+	var rect = _rectiToRect(recti)
+	var center = rect.position + rect.size/2
 	return Vector3(center.x, center.y, summedWeight)
-
 
 #endregion
 
-#region Meshing
+#region Render&Physics Management
 
-func _updateMeshes(changedVals:Array[int]):
-	for change in changedVals:
-		_removeRenderMeshes(change)
-		_removePhysicsMeshes(change)
-	grid.reCacheMeshes(changedVals);
-	for change in changedVals:
-		_addRenderMeshes(change)
-		_addPhysicsMeshes(change)
-
-func _addRenderMeshes(blockType):
-	var meshImage = thisblockTypes.array[blockType].texture;
-	for meshNum in grid.cachedMeshes[blockType].size():
-		var mesh = grid.cachedMeshes[blockType][meshNum]
-		var polygon = _makeRenderPolygon(mesh, meshImage)
-		polygon.name = encodeMeshName(meshNum, blockType)
+func _addRenderBoxes(blockType):
+	var image = thisblockTypes.array[blockType].texture;
+	for rectNum in grid.cachedRects[blockType].size():
+		var rect = grid.cachedRects[blockType][rectNum]
+		var polygon = _makeRenderPolygon(rect, image)
+		polygon.name = _encodeName(rectNum, blockType)
 		add_child(polygon)
 
-func _removeRenderMeshes(blockType): 
-	for meshNum in grid.cachedMeshes[blockType].size():
-		get_node(encodeMeshName(meshNum, blockType)).free()
+func _removeRenderBoxes(blockType): 
+	for rectNum in grid.cachedRects[blockType].size():
+		get_node(_encodeName(rectNum, blockType)).free()
 
-func _addPhysicsMeshes(blockType:int):
+func _addPhysicsBoxes(blockType:int):
 	if (thisblockTypes.array[blockType].collision == true):
-		for meshNum in grid.cachedMeshes[blockType].size():
-			var mesh = grid.cachedMeshes[blockType][meshNum]
-			var colBox:CollisionShape2D = _makeColBox(mesh);
-			colBox.name = encodeMeshName(meshNum, blockType)
+		for rectNum in grid.cachedRects[blockType].size():
+			var rect = grid.cachedRects[blockType][rectNum]
+			var colBox:CollisionShape2D = _makeColBox(rect);
+			colBox.name = _encodeName(rectNum, blockType)
 			get_node("../../").add_child(colBox)
 
-func _removePhysicsMeshes(blockType:int):
+func _removePhysicsBoxes(blockType:int):
 	if (thisblockTypes.array[blockType].collision == true):
-		for meshNum in grid.cachedMeshes[blockType].size():
-			get_node("../../" + encodeMeshName(meshNum, blockType)).free()
+		for rectNum in grid.cachedRects[blockType].size():
+			get_node("../../" + _encodeName(rectNum, blockType)).free()
 
-func encodeMeshName(meshNum, blockType):
-	#Chunk Name, followed by encoded mesh name
-	#Chunk Name only matters with collision boxes, but I don't care enough to remove it from the render polygons
-	return name + " " + String.num_int64((meshNum << grid.blocks.packSize) + blockType)
+func _encodeName(number, blockType):
+	#Chunk Name, followed by encoded name
+	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
+	return name + " " + String.num_int64((number << grid.blocks.packSize) + blockType)
 
-func _makeRenderPolygon(points, texture):
-	var rect = _meshToLocalRect(points);
+func _makeRenderPolygon(recti, texture):
+	var rect = _rectiToRect(recti);
 	var data:PackedVector2Array = PackedVector2Array();
 	data.push_back(rect.position);
 	data.push_back(Vector2(rect.position.x, rect.position.y + rect.size.y));
@@ -121,19 +118,19 @@ func _makeRenderPolygon(points, texture):
 	polygon.texture_scale = texture.get_size()/grid.blockLength
 	return polygon
 
-func _makeColBox(mesh:Rect2i):
-	var rectMesh = _meshToLocalRect(mesh);
+func _makeColBox(recti:Rect2i):
+	var rect = _rectiToRect(recti);
 	var colShape = CollisionShape2D.new();
 	colShape.shape = RectangleShape2D.new();
-	colShape.position = rectMesh.position + rectMesh.size/2;
-	colShape.shape.size = rectMesh.size;
+	colShape.position = rect.position + rect.size/2;
+	colShape.shape.size = rect.size;
 	return colShape
 
-func _meshToLocalRect(mesh:Rect2i):
-	var alignedRect:Rect2 = Rect2(mesh)
-	alignedRect.position *= grid.blockLength
-	alignedRect.size *= grid.blockLength
-	return alignedRect
+func _rectiToRect(recti:Rect2i):
+	var rect:Rect2 = Rect2(recti)
+	rect.position *= grid.blockLength
+	rect.size *= grid.blockLength
+	return rect
 
 #endregion
 

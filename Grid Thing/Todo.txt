@@ -1,8 +1,4 @@
 Todo
-	- Important
-	- - Figure out what to call the things the greedy mesher outputs
-	- ^ Because they aren't meshes, they're rectangles
-	
 	- Technical Things
 	- - Object detection (bc non attached objects shouldn't be attached)
 	- - Add (two?) bits of info for everything to specify if it has special data
@@ -11,15 +7,12 @@ Todo
 	- - Don't greedy mesh objects with visually distinct special data
 	
 	- Implement Center of Mass
-	- - Track total mass of object
-	- - Store point masses of each mesh in 2D Array
-	- - - Read cached point masses for blockTypes which weren't updated
 	- - Allow render and collision shapes to move based on center of mass
-	- - Allow automatic recalculation of center of mass
 	
 	- Implement multi chunk(64x64 blocks) objects
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
 	- - Allow center of mass to be influenced by all chunks properly
+	- - Broadcast old and new mass of a chunk to chunkmanager for more efficient mass updates
 	
 	- Clean up/optimise collision meshing 
 	- - Mesh culling to minimize collision objects in scene at once (2d Occlusion culling)
@@ -43,6 +36,8 @@ Done
 	-/ Allow chunks to toggle edit-ability
 	-/ Modify mesh rendering to support textures (sprites)
 	-/ Add infrastructure for instancing chunks
+	-/ Read cached point masses for blockTypes which weren't updated
+	-/ Allow automatic recalculation of center of mass
 
 Links
 	https://www.pixilart.com/draw

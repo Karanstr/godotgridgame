@@ -7,7 +7,7 @@ var length:Vector2;
 var com:Vector2;
 var blockLength:Vector2;
 var area:int;
-var cachedMeshes:Array = [];
+var cachedRects:Array = [];
 var uniqueBlocks:int = 0;
 
 #Constructor
@@ -24,7 +24,7 @@ static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = V
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(newGrid.uniqueBlocks));
 	
 	for block in newGrid.uniqueBlocks:
-		newGrid.cachedMeshes.push_back([]);
+		newGrid.cachedRects.push_back([]);
 	
 	return newGrid
 
@@ -113,9 +113,9 @@ func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
 						meshedBoxes[block].push_back(box);
 	return meshedBoxes
 
-func reCacheMeshes(blocksChanged:Array[int]) -> void:
-	var newMesh:Array = greedyMesh(blocksChanged);
+func reCacheRects(blocksChanged:Array[int]) -> void:
+	var newRects:Array = greedyMesh(blocksChanged);
 	for block in blocksChanged.size():
-		cachedMeshes[blocksChanged[block]] = newMesh[block]
+		cachedRects[blocksChanged[block]] = newRects[block]
 
 #endregion
