@@ -1,14 +1,26 @@
 Todo
-	- Add saving and loadng of grid
+	- Technical Things
+	- - Object detection (bc non attached objects shouldn't be attached)
+	- - Add (two?) bits of info for everything to specify if it has special data
+	- - One bit for special data, one bit for whether that special data affects it visually
+	- - Way to store/recall special data
+	- - Don't greedy mesh objects with visually distinct special data
+	- - Potentially clean up chaining with signals?
 	
-	
-	
-	
-	Todo I Don't Wanna Do
-	- Clean up/optimise collision meshing 
 	- Implement multi chunk(64x64 blocks) objects
-	- Figure out sleeping issue when updating collision boxes
-
+	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
+	- - Allow center of mass to be influenced by all chunks properly
+	- - Broadcast old and new mass of a chunk to chunkmanager for more efficient mass updates
+	
+	- Clean up/optimise collision meshing 
+	- - Mesh culling to minimize collision objects in scene at once (2d Occlusion culling)
+	
+	- Grid
+	- - Raystepping between mouse prior and current positions to prevent skipping while dragging? 
+	- - Add saving and loading of grid
+	
+	- Other Collision Stuff
+	- - Figure out sleeping issue when updating collision boxes
 
 Done
 	-/ Create bitField Class
@@ -17,3 +29,14 @@ Done
 	-/ Implement binary greedymeshing
 	-/ Create collision boxes based on meshes
 	-/ Make _rowToBits() only use a single box
+	-/ Add class for storing extensive block data
+	-/ Allow drag editing of a chunk
+	-/ Allow chunks to toggle edit-ability
+	-/ Modify mesh rendering to support textures (sprites)
+	-/ Add infrastructure for instancing chunks
+	-/ Read cached point masses for blockTypes which weren't updated
+	-/ Allow automatic recalculation of center of mass
+	-/ Implement Center of Mass
+
+Links
+	https://www.pixilart.com/draw
