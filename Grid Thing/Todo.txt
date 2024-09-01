@@ -7,7 +7,7 @@ Todo
 	- - Don't greedy mesh objects with visually distinct special data
 	
 	- Implement Center of Mass
-	- - Allow render and collision shapes to move based on center of mass
+	- - Use signals to update COM instead of 
 	
 	- Implement multi chunk(64x64 blocks) objects
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)

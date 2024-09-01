@@ -35,16 +35,15 @@ func updateChunk(changedVals:Array[int], firstCall:bool = false):
 			_removeRenderBoxes(change)
 			_removePhysicsBoxes(change)
 	grid.reCacheRects(changedVals);
-	_updateCOM(changedVals, false)
+	if (!firstCall):
+		_updateCOM(changedVals)
 	for change in changedVals: #Add Current Boxes
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
-	
 
-#Rewrite COM stuff
 #region Mass Management
 
-func _updateCOM(changedVals:Array[int], moveBoxes:bool = true):
+func _updateCOM(changedVals:Array[int]):
 	var centerOfMass = Vector2(0,0);
 	var oldMass:int = chunkMass;
 	chunkMass = 0;
@@ -55,10 +54,9 @@ func _updateCOM(changedVals:Array[int], moveBoxes:bool = true):
 			chunkMass += point.z
 	centerOfMass /= Vector2(chunkMass, chunkMass)
 	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
-	if (moveBoxes):
-		#Change chunk offset to relocate render boxes
-		#Loop through each physics box to offset them from modified rigidGrid origin? 
-		pass
+
+	var node = get_node("../")
+	node.updateCOM(centerOfMass)
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):

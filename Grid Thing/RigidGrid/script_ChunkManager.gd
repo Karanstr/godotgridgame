@@ -10,6 +10,7 @@ func defineBlocks(object_BlockTypes):
 func _ready():
 	defineBlocks(blockTypes)
 	addNewChunk(Vector2i(0,0), blockTypes)
+	updateCOM(Vector2(1,1))
 
 func addNewChunk(_chunkLocation:Vector2i, blockTypes):
 	var newChunk:Node2D = Node2D.new();
@@ -24,4 +25,8 @@ func removeChunk(chunkName:String):
 	#Delete Physics and Render meshes
 	removedChunk.free()
 
+func updateCOM(COM:Vector2):
+	get_node("../").center_of_mass = COM
+	#Go up the line, get COMs and weights for each chunk, then recalculate and get real COM
+	pass
 #
