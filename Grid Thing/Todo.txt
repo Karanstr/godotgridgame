@@ -5,9 +5,7 @@ Todo
 	- - One bit for special data, one bit for whether that special data affects it visually
 	- - Way to store/recall special data
 	- - Don't greedy mesh objects with visually distinct special data
-	
-	- Implement Center of Mass
-	- - Use signals to update COM instead of 
+	- - Potentially clean up chaining with signals?
 	
 	- Implement multi chunk(64x64 blocks) objects
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
@@ -38,6 +36,7 @@ Done
 	-/ Add infrastructure for instancing chunks
 	-/ Read cached point masses for blockTypes which weren't updated
 	-/ Allow automatic recalculation of center of mass
+	-/ Implement Center of Mass
 
 Links
 	https://www.pixilart.com/draw
