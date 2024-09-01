@@ -56,7 +56,7 @@ func _updateCOM(changedVals:Array[int]):
 	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
 
 	var node = get_node("../")
-	node.updateCOM(centerOfMass)
+	node.updateRigidGrid(centerOfMass, chunkMass)
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):
