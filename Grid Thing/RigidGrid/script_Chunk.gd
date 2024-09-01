@@ -7,7 +7,7 @@ var chunkCOM:Vector2;
 var pointMasses:Array = []
 var chunkMass:int = 0
 
-var lastEditKey:int;
+var lastEditKey:int = -1;
 
 func init(gridSize:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	thisblockTypes = blockTypes
