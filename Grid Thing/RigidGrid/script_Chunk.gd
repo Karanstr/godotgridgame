@@ -45,7 +45,7 @@ func updateChunk(changedVals:Array[int], firstCall:bool = false):
 
 func _updateCOM(changedVals:Array[int]):
 	var centerOfMass = Vector2(0,0);
-	var oldMass:int = chunkMass;
+	var _oldMass:int = chunkMass;
 	chunkMass = 0;
 	for blockType in changedVals:
 		pointMasses[blockType] = _reduceToPointMasses(blockType);

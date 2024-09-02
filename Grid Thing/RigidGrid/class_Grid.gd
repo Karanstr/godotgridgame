@@ -10,6 +10,8 @@ var area:int;
 var cachedRects:Array = [];
 var uniqueBlocks:int = 0;
 
+var binaryReps:Array = [];
+
 #Constructor
 static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = Vector2i(64,64)) -> Grid:
 	var newGrid = Grid.new();
@@ -23,12 +25,17 @@ static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = V
 	newGrid.uniqueBlocks = uniqueBlockCount;
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(newGrid.uniqueBlocks));
 	
+	newGrid._recacheBinaryReps()
+	
 	for block in newGrid.uniqueBlocks:
 		newGrid.cachedRects.push_back([]);
 	
 	return newGrid
 
-#region I/O
+func _recacheBinaryReps():
+	pass
+
+#region I/Oing
 func decode(key:int) -> Vector2i:
 	return Vector2i(key%dimensions.x, key/dimensions.x)
 
@@ -59,26 +66,9 @@ func keyToPoint(key:int) -> Vector2:
 
 #endregion
 
-#region Meshing
-#Will only read up to the first 64 packs of the row
-func _rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
-	var rows:Array[int] = [];
-	for block in matchedValues.size():
-		rows.push_back(0)
-	var index:int = dimensions.x*rowNum;
-	var rowData:Array[int] = blocks.readSection(dimensions.x, index);
-	var packCounter:int = 0;
-	for i in dimensions.x:
-		var dataBox:int = packCounter/blocks.packsPerBox;
-		var val:int = rowData[dataBox] & blocks.packMask;
-		rowData[dataBox] = Util.rightShift(rowData[dataBox], blocks.packSize);
-		for block in matchedValues.size():
-			if (matchedValues[block] == val):
-				rows[block] += 1 << (packCounter % blocks.boxSize);
-		packCounter += 1;
-	return rows
+#region Recting
 
-func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
+func greedyRect(blocksToBeMeshed:Array[int]) -> Array:
 	var blockGrids:Array = [];
 	var meshedBoxes:Array = []
 	#Set up initial arrays
@@ -86,7 +76,7 @@ func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
 		blockGrids.push_back([])
 		meshedBoxes.push_back([]);
 	for row in dimensions.y:
-		var rowData:Array = _rowToInt(row, blocksToBeMeshed);
+		var rowData:Array = blocks.rowToInt(dimensions.x, row, blocksToBeMeshed);
 		for block in blockGrids.size():
 			blockGrids[block].push_back(rowData[block])
 	#Actual meshing
@@ -114,8 +104,16 @@ func greedyMesh(blocksToBeMeshed:Array[int]) -> Array:
 	return meshedBoxes
 
 func reCacheRects(blocksChanged:Array[int]) -> void:
-	var newRects:Array = greedyMesh(blocksChanged);
+	var newRects:Array = greedyRect(blocksChanged);
 	for block in blocksChanged.size():
 		cachedRects[blocksChanged[block]] = newRects[block]
 
 #endregion
+
+#region Graph Theorying
+
+
+
+#endregion
+
+#

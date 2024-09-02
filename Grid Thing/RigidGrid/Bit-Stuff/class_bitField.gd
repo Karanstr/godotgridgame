@@ -34,6 +34,18 @@ func read(index:int):
 	var padding:int = _getPadding(index, boxNum);
 	return Util.rightShift(data[boxNum], padding) & packMask 
 
+func modify(index:int, newVal:int):
+	if (Util.bitsToStore(newVal) > packSize):
+		print("Value exceeds packing size: " + String.num_int64(newVal))
+		return false
+	if (index >= totalPacks):
+		print("Cannot access index " + String.num_int64(index))
+		return false
+	var boxNum:int = _getBox(index);
+	var oldValue:int = read(index);
+	data[boxNum] += Util.leftShift(newVal - oldValue, _getPadding(index, boxNum))
+	return oldValue
+
 func readSection(packsRemaining:int, startIndex:int):
 	var section:Array[int] = [];
 	var currentBox:int = _getBox(startIndex);
@@ -51,14 +63,23 @@ func readSection(packsRemaining:int, startIndex:int):
 		remPacksInCurBox = boxSize - packsInNextBox;
 	return section
 
-func modify(index:int, newVal:int):
-	if (Util.bitsToStore(newVal) > packSize):
-		print("Value exceeds packing size: " + String.num_int64(newVal))
-		return false
-	if (index >= totalPacks):
-		print("Cannot access index " + String.num_int64(index))
-		return false
-	var boxNum:int = _getBox(index);
-	var oldValue:int = read(index);
-	data[boxNum] += Util.leftShift(newVal - oldValue, _getPadding(index, boxNum))
-	return oldValue
+#Will only read up to the first 64 packs of the row
+func rowToInt(rowLength:int, rowNum:int, matchedValues:Array[int]) -> Array[int]:
+	if (rowLength > 64):
+		print(String.num_int64(rowLength) + " is larger than 64 bits")
+		return []
+	var rows:Array[int] = [];
+	for block in matchedValues.size():
+		rows.push_back(0)
+	var index:int = rowLength*rowNum;
+	var rowData:Array[int] = readSection(rowLength, index);
+	var packCounter:int = 0;
+	for i in rowLength:
+		var dataBox:int = packCounter/packsPerBox;
+		var val:int = rowData[dataBox] & packMask;
+		rowData[dataBox] = Util.rightShift(rowData[dataBox], packSize);
+		for block in matchedValues.size():
+			if (matchedValues[block] == val):
+				rows[block] += 1 << (packCounter % boxSize);
+		packCounter += 1;
+	return rows
