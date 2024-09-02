@@ -10,7 +10,7 @@ var area:int;
 var cachedRects:Array = [];
 var uniqueBlocks:int = 0;
 
-var binaryReps:Array = [];
+var binary_row_block:Array = [];
 
 #Constructor
 static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = Vector2i(64,64)) -> Grid:
@@ -25,15 +25,22 @@ static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = V
 	newGrid.uniqueBlocks = uniqueBlockCount;
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(newGrid.uniqueBlocks));
 	
-	newGrid._recacheBinaryReps()
+	newGrid._recacheBinaryStrings()
 	
 	for block in newGrid.uniqueBlocks:
 		newGrid.cachedRects.push_back([]);
 	
 	return newGrid
 
-func _recacheBinaryReps():
-	pass
+func _recacheBinaryStrings():
+	var newBinaryStrings:Array = [];
+	var allBlocks:Array[int] = [];
+	for block in uniqueBlocks:
+		allBlocks.push_back(block)
+	for row in dimensions.y:
+		newBinaryStrings.push_back(blocks.rowToInt(dimensions.x, row, allBlocks))
+	binary_row_block = newBinaryStrings;
+	return true
 
 #region I/Oing
 func decode(key:int) -> Vector2i:

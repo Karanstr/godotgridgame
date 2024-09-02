@@ -21,3 +21,8 @@ func removeBlock(index:int):
 	var deletedBlock:Block = array[index];
 	array.remove_at(index)
 	return deletedBlock
+
+func replaceBlock(index:int, newBlock):
+	var oldBlock = array[index];
+	array[index] = newBlock
+	return oldBlock
