@@ -26,8 +26,8 @@ static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = V
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(newGrid.uniqueBlocks));
 	
 	newGrid._recacheBinaryStrings()
-	
-	for block in newGrid.uniqueBlocks:
+	#Super silly this has to be here but the array has to be initialized somewhere
+	for block in newGrid.uniqueBlocks: 
 		newGrid.cachedRects.push_back([]);
 	
 	return newGrid
@@ -56,6 +56,10 @@ func encode(coord:Vector2i) -> int:
 
 func assign(key:int, value:int) -> int:
 	var oldVal = blocks.modify(key, value);
+	var coords = decode(key)
+	var mask = 1 << coords.x
+	binaryStrings_block_row[value][coords.y] |= mask
+	binaryStrings_block_row[oldVal][coords.y] &= ~mask
 	return oldVal
 
 func read(key:int) -> int:
@@ -81,7 +85,7 @@ func keyToPoint(key:int) -> Vector2:
 #region Recting
 
 func greedyRect(updateBlocks:Array[int]) -> Array:
-	_recacheBinaryStrings()
+	#_recacheBinaryStrings()
 	var blockGrids:Array = binaryStrings_block_row.duplicate(true);
 	var meshedBoxes:Array = []
 	#Set up initial arrays

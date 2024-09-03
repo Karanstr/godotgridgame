@@ -27,8 +27,6 @@ func removeChunk(chunkName:String):
 func updateRigidGrid(COM:Vector2, mass:int):
 	var rigidgrid = get_node("../")
 	rigidgrid.center_of_mass = COM
-	if (mass < 0):
-		mass = 0
 	rigidgrid.mass = mass
 	#Go up the line, get COMs and weights for each chunk, then recalculate and get real COM
 	pass
