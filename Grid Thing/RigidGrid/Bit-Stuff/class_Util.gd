@@ -2,6 +2,8 @@ class_name Util
 
 static var maxInt = (2**63)-1
 
+#region Bit Functions
+
 static func bitsToStore(number:int) -> int:
 	if (number == 1):
 		return 1
@@ -33,20 +35,14 @@ static func rightShift(number:int, bits:int) -> int:
 		shiftedNumber |= saveSign
 	return shiftedNumber
 
+#endregion
+
+#region Mask Functions 
+
 static func genMask(packSize:int, numOfPacks:int, instanceMask:int) -> int:
 	var mask:int = 0;
 	for pack in numOfPacks:
 		mask = (mask << packSize) | instanceMask
-	return mask
-
-static func findFirstMask(row:int) -> int:
-	var mask:int = findRightSetBit(row);
-	row &= ~mask;
-	while true:
-		var nextMask = (mask << 1) | mask
-		if (mask == nextMask):
-			break
-		mask = nextMask
 	return mask
 
 static func findMasksInBitRow(row:int) -> Array:
@@ -66,3 +62,30 @@ static func findMasksInBitRow(row:int) -> Array:
 		masks.push_back([curMask, leading0s, maskSize]);
 		leading0s += maskSize;
 	return masks
+
+static func findFirstMask(row:int) -> int:
+	var mask:int = findRightSetBit(row);
+	row &= ~mask;
+	while true:
+		var nextMask = (mask << 1) | mask
+		if (mask == nextMask):
+			break
+		mask = nextMask
+	return mask
+
+static func extendMask(row:int, mask:int) -> int:
+	while true:
+		var newMask = (leftShift(mask, 1) & row) | mask
+		if (newMask == mask):
+			break
+		mask = newMask
+	while true:
+		var newMask = (rightShift(mask, 1) & row) | mask
+		if (newMask == mask):
+			break
+		mask = newMask
+	return mask
+
+#endregion
+
+#

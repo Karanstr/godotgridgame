@@ -24,7 +24,6 @@ static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = V
 	
 	newGrid.uniqueBlocks = uniqueBlockCount;
 	newGrid.blocks = bitField.create(newGrid.area, Util.bitsToStore(newGrid.uniqueBlocks));
-	
 	newGrid._recacheBinaryStrings()
 	#Super silly this has to be here but the array has to be initialized somewhere
 	for block in newGrid.uniqueBlocks: 
@@ -38,10 +37,10 @@ func _recacheBinaryStrings():
 	var allBlocks:Array[int] = [];
 	for block in uniqueBlocks:
 		allBlocks.push_back(block);
-		newBinaryStrings.push_back([]);
 	for row in dimensions.y:
 		tempArrays.push_back(blocks.rowToInt(dimensions.x, row, allBlocks));
 	for block in uniqueBlocks:
+		newBinaryStrings.push_back([]);
 		for row in dimensions.y:
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binaryStrings_block_row = newBinaryStrings
@@ -124,7 +123,60 @@ func reCacheRects(blocksChanged:Array[int]) -> void:
 
 #region Graph Theorying
 
+func nextChecks(mask:int, row:int):
+	var checks = [
+	Vector2i(Util.leftShift(mask, 1), row),
+	Vector2i(Util.rightShift(mask, 1), row),
+	Vector2i(mask, row + 1),
+	Vector2i(mask, row - 1)
+	]
+	for direction in checks.size():
+		var dir = checks[direction]
+		if (dir.x == 0 || dir.y == -1 || dir.y == dimensions.y):
+			checks[direction] = false
+	return checks
 
+func walkAround():
+	var binaryArray = binaryStrings_block_row[1].duplicate(true);
+	if (binaryArray.max() == 0):
+		return 0
+	var foundBlocks = 1;
+	var dirSave = [
+		[0, 2, 3],
+		[1, 2, 3],
+		[0, 1, 2],
+		[0, 1, 3]
+	]
+	var checks:Array = [[], [], [], []];
+	for row in dimensions.y: #Find first row with data
+		if (binaryArray[row] != 0):
+			var mask = Util.findRightSetBit(binaryArray[row])
+			var newChecks = nextChecks(mask, row)
+			for direction in 4:
+				checks[direction].push_back(newChecks[direction])
+			binaryArray[row] &= ~mask
+			break
+	var allFound = false 
+	while !allFound:
+		var empty = 0;
+		for dir in checks.size():
+			var check = checks[dir].pop_back()
+			while (typeof(check) == 1): #Typeof is stupid
+				check = checks[dir].pop_back()
+			if (check == null):
+				empty += 1
+			else:
+				if (binaryArray[check.y] & check.x != 0):
+					foundBlocks += 1
+					binaryArray[check.y] &= ~check.x
+					var newChecks = nextChecks(check.x, check.y)
+					for direction in dirSave[dir]:
+						checks[direction].push_back(newChecks[direction])
+		if empty == 4:
+			allFound = true
+	if (binaryArray.max() != 0):
+		print("Not attached")
+	return foundBlocks
 
 #endregion
 

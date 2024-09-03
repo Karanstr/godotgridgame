@@ -6,6 +6,7 @@ Todo
 	- - Way to store/recall special data
 	- - Don't greedy mesh objects with visually distinct special data
 	- - Potentially clean up chaining with signals?
+	- - Allow for different collision shapes/meshes
 	
 	- Implement multi chunk(64x64 blocks) objects
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
