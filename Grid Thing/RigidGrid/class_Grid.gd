@@ -10,7 +10,7 @@ var area:int;
 var cachedRects:Array = [];
 var uniqueBlocks:int = 0;
 
-var binary_row_block:Array = [];
+var binaryStrings_block_row:Array = [];
 
 #Constructor
 static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = Vector2i(64,64)) -> Grid:
@@ -34,12 +34,17 @@ static func create(length:Vector2, uniqueBlockCount:int, dimensions:Vector2i = V
 
 func _recacheBinaryStrings():
 	var newBinaryStrings:Array = [];
+	var tempArrays:Array = [];
 	var allBlocks:Array[int] = [];
 	for block in uniqueBlocks:
-		allBlocks.push_back(block)
+		allBlocks.push_back(block);
+		newBinaryStrings.push_back([]);
 	for row in dimensions.y:
-		newBinaryStrings.push_back(blocks.rowToInt(dimensions.x, row, allBlocks))
-	binary_row_block = newBinaryStrings;
+		tempArrays.push_back(blocks.rowToInt(dimensions.x, row, allBlocks));
+	for block in uniqueBlocks:
+		for row in dimensions.y:
+			newBinaryStrings[block].push_back(tempArrays[row][block])
+	binaryStrings_block_row = newBinaryStrings
 	return true
 
 #region I/Oing
@@ -75,19 +80,15 @@ func keyToPoint(key:int) -> Vector2:
 
 #region Recting
 
-func greedyRect(blocksToBeMeshed:Array[int]) -> Array:
-	var blockGrids:Array = [];
+func greedyRect(updateBlocks:Array[int]) -> Array:
+	_recacheBinaryStrings()
+	var blockGrids:Array = binaryStrings_block_row.duplicate(true);
 	var meshedBoxes:Array = []
 	#Set up initial arrays
-	for block in blocksToBeMeshed.size():
-		blockGrids.push_back([])
+	for block in updateBlocks:
 		meshedBoxes.push_back([]);
-	for row in dimensions.y:
-		var rowData:Array = blocks.rowToInt(dimensions.x, row, blocksToBeMeshed);
-		for block in blockGrids.size():
-			blockGrids[block].push_back(rowData[block])
 	#Actual meshing
-	for block in blocksToBeMeshed.size():
+	for block in updateBlocks.size():
 		while (blockGrids[block].max() != 0): #While grid hasn't been fully swept
 			for row in dimensions.y: #Search each row
 				var rowData:int = blockGrids[block][row];
@@ -112,8 +113,8 @@ func greedyRect(blocksToBeMeshed:Array[int]) -> Array:
 
 func reCacheRects(blocksChanged:Array[int]) -> void:
 	var newRects:Array = greedyRect(blocksChanged);
-	for block in blocksChanged.size():
-		cachedRects[blocksChanged[block]] = newRects[block]
+	for block in blocksChanged:
+		cachedRects[block] = newRects[block]
 
 #endregion
 
