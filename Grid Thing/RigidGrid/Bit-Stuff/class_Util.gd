@@ -65,9 +65,8 @@ static func findMasksInBitRow(row:int) -> Array:
 
 static func findFirstMask(row:int) -> int:
 	var mask:int = findRightSetBit(row);
-	row &= ~mask;
 	while true:
-		var nextMask = (mask << 1) | mask
+		var nextMask = ((mask << 1) | mask) & row
 		if (mask == nextMask):
 			break
 		mask = nextMask

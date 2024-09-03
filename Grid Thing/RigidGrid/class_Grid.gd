@@ -124,21 +124,23 @@ func reCacheRects(blocksChanged:Array[int]) -> void:
 #region Graph Theorying
 
 func nextChecks(mask:int, row:int):
+	var left = Util.leftShift(mask, 1)
+	var right = Util.rightShift(mask, 1)
 	var checks = [
-	Vector2i(Util.leftShift(mask, 1), row),
-	Vector2i(Util.rightShift(mask, 1), row),
-	Vector2i(mask, row + 1),
-	Vector2i(mask, row - 1)
+	false if left == 0 else Vector2i(left, row),
+	false if right == 0 else Vector2i(right, row),
+	false if row + 1 == dimensions.y else Vector2i(mask, row + 1),
+	false if row - 1 == -1 else Vector2i(mask, row - 1)
 	]
-	for direction in checks.size():
-		var dir = checks[direction]
-		if (dir.x == 0 || dir.y == -1 || dir.y == dimensions.y):
-			checks[direction] = false
 	return checks
 
-func walkAround():
-	var binaryArray = binaryStrings_block_row[1].duplicate(true);
-	if (binaryArray.max() == 0):
+func walkAround(blocksConnected:Array[int]):
+	var binaryArray:Array[int] = []
+	for row in dimensions.y:
+		binaryArray.push_back(0)
+		for block in blocksConnected:
+			binaryArray[row] |= binaryStrings_block_row[block][row]
+	if (binaryArray.max() == 0): #Can't search through a non array
 		return 0
 	var foundBlocks = 1;
 	var dirSave = [
@@ -174,6 +176,53 @@ func walkAround():
 						checks[direction].push_back(newChecks[direction])
 		if empty == 4:
 			allFound = true
+	if (binaryArray.max() != 0):
+		print("Not attached")
+	return foundBlocks
+
+func makeNextChecks(mask:int, row:int):
+	var checks:Array = [
+	false if row + 1 == dimensions.y else Vector2i(mask, row + 1),
+	false if row - 1 == -1 else Vector2i(mask, row - 1)
+	]
+	return checks 
+
+func fasterWalkAround(blocksConnected:Array[int]):
+	var foundBlocks = 1;
+	var checks:Array = []
+	var binaryArray:Array[int] = []
+	for row in dimensions.y:
+		binaryArray.push_back(0)
+		for block in blocksConnected:
+			binaryArray[row] |= binaryStrings_block_row[block][row]
+	if (binaryArray.max() == 0): #Can't search through a non array
+		return 0
+	for row in dimensions.y: #Find first row with data
+		if (binaryArray[row] != 0):
+			var fullMask = Util.findFirstMask(binaryArray[row])
+			print(fullMask)
+			checks.append_array(makeNextChecks(fullMask, row))
+			binaryArray[row] &= ~fullMask
+			break
+	while checks.is_empty() == false:
+		var curCheck = checks.pop_back()
+		while typeof(curCheck) == 1:
+			curCheck = checks.pop_back()
+		if curCheck == null:
+			continue
+		print(curCheck)
+		var newMask = binaryArray[curCheck.y] & curCheck.x
+		if (newMask != 0):
+			var masks:Array[int] = [];
+			while newMask != 0:
+				foundBlocks += 1;
+				var foundMask = Util.findFirstMask(newMask)
+				newMask &= ~foundMask
+				masks.push_back(foundMask)
+			for mask in masks:
+				var fullMask = Util.extendMask(binaryArray[curCheck.y], mask) 
+				binaryArray[curCheck.y] &= ~fullMask
+				checks.append_array(makeNextChecks(fullMask, curCheck.y))
 	if (binaryArray.max() != 0):
 		print("Not attached")
 	return foundBlocks
