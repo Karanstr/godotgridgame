@@ -1,6 +1,8 @@
 Todo
 	- Technical Things
+	- - Implement mass-updating of the grid (without just calling modify a bunch?)
 	- - Object detection (bc non attached objects shouldn't be attached)
+	- - - Allow objects to split when they are no longer attached
 	- - Add (two?) bits of info for everything to specify if it has special data
 	- - One bit for special data, one bit for whether that special data affects it visually
 	- - Way to store/recall special data

@@ -1,6 +1,7 @@
 class_name Util
 
 static var maxInt = (2**63)-1
+static var boxSize = 64
 
 #region Bit Functions
 
@@ -94,7 +95,7 @@ static func extendMask(num:int, mask:int) -> int:
 
 #endregion
 
-#region BStrings & BArrays
+#region binArray Deriving Functions
 
 static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
 	var checks:Array = [
@@ -103,29 +104,39 @@ static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
 	]
 	return checks 
 
-static func findGroups(binArray:Array[int]):
+static func findGroups(binArray:Array[int], gridDims:Vector2i):
 	var binaryArray = binArray.duplicate()
-	var checks:Array = []
-	#Can't search an empty array
-	if (binaryArray.all(func(r): return r == 0)): return 0
-	for row in binaryArray.size(): #Find first row with data
-		if (binaryArray[row] != 0):
-			var fullMask = findFirstMask(binaryArray[row])
-			checks.append_array(makeNextChecks(fullMask, row, binaryArray.size()))
-			binaryArray[row] &= ~fullMask
-			break
-	while checks.is_empty() == false:
-		var curCheck = checks.pop_back()
-		while typeof(curCheck) == 1: curCheck = checks.pop_back()
-		if curCheck == null: break #checks is empty
-		var newMask = binaryArray[curCheck.y] & curCheck.x
-		while newMask != 0:
-			var foundMask = findFirstMask(newMask)
-			newMask &= ~foundMask
-			var fullMask = extendMask(binaryArray[curCheck.y], foundMask) 
-			binaryArray[curCheck.y] &= ~fullMask
-			checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
-	if (binaryArray.any(func(r): return r != 0)): print("Not attached")
+	#Can't search an empty grid
+	if (binaryArray.all(func(r): return r == 0)): return []
+	var groups:Array = []
+	var curGroup = 0;
+	while (binaryArray.any(func(r): return r != 0)):
+		var groupArray:Array[int] = []
+		groupArray.resize(gridDims.y)
+		groupArray.fill(0)
+		groups.push_back(groupArray)
+		var checks:Array = []
+		for row in binaryArray.size(): #Find first row with data
+			if (binaryArray[row] != 0):
+				var fullMask = findFirstMask(binaryArray[row])
+				checks.append_array(makeNextChecks(fullMask, row, binaryArray.size()))
+				binaryArray[row] &= ~fullMask
+				groupArray[row] |= fullMask
+				break
+		while checks.is_empty() == false:
+			var curCheck = checks.pop_back()
+			while typeof(curCheck) == 1: curCheck = checks.pop_back()
+			if curCheck == null: break #checks is empty
+			var newMask = binaryArray[curCheck.y] & curCheck.x
+			while newMask != 0:
+				var foundMask = findFirstMask(newMask)
+				newMask &= ~foundMask
+				var fullMask = extendMask(binaryArray[curCheck.y], foundMask) 
+				binaryArray[curCheck.y] &= ~fullMask
+				groupArray[curCheck.y] |= fullMask
+				checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
+		curGroup += 1;
+	return groups
 
 static func greedyRect(binArray:Array) -> Array:
 	var binaryArray = binArray.duplicate()
@@ -152,6 +163,51 @@ static func greedyRect(binArray:Array) -> Array:
 							break #Mask does not exist in row, shape is complete
 					meshedBoxes.push_back(box);
 	return meshedBoxes
+
+#endregion
+
+#region binArray Handling Functions
+
+class packedArray:
+	func _init(totalPacks:int, packSize:int):
+		pass
+
+static func getPosition(index, packSize:int = 1, packsPerBox:int = boxSize/packSize):
+	var boxNum = index/packsPerBox
+	var padding = (index - boxNum*packsPerBox)*packSize
+	return Vector2i(boxNum, padding)
+
+#Returns [value, position]
+static func readIndex(section:Array[int], index:int, packSize:int, packsPerBox:int = boxSize/packSize):
+	var position = getPosition(index, packsPerBox, packSize);
+	return [rightShift(section[position.x], position.y) & genMask(packSize, 1, 1), position]
+
+static func modifyIndex(array:Array[int], index:int, newVal:int, packSize:int = 1, packsPerBox:int = boxSize/packSize):
+	var oldValue:Array = readIndex(array, index, packSize, packsPerBox);
+	array[oldValue[1].x] += Util.leftShift(newVal - oldValue[0], oldValue[1].y)
+	return oldValue[0]
+
+static func readSection(array:Array[int], packs:int, startIndex:int = 0, packSize:int = 1, packsPerBox:int = boxSize/packSize):
+	var packMask = genMask(packSize, 1, 1)
+	var section:Array[int] = [];
+	var curPos = getPosition(startIndex, packSize)
+	var remPacksInCurBox:int = (boxSize - curPos.y)/packSize
+	while packs > 0:
+		var rightSideMask:int = genMask(packSize, min(remPacksInCurBox, packs), packMask);
+		var packsInNextBox = min(boxSize, packs) - remPacksInCurBox
+		var leftSideMask:int = Util.genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0;
+		var rightSide = Util.rightShift(array[curPos.x], curPos.y) & rightSideMask;
+		var leftSide = Util.leftShift(array[curPos.x+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox < packs) else 0;
+		section.push_back(rightSide + leftSide);
+		packs -= packsPerBox;
+		curPos.x += 1;
+		remPacksInCurBox = boxSize - packsInNextBox;
+	return section
+
+static func packArray(array:Array[int]):
+	if array.min() < 0:
+		return array
+	var newArray = packedArray.new(array.size(), bitsToStore(array.max()))
 
 #endregion
 

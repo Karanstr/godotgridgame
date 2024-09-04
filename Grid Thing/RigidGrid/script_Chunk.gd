@@ -14,7 +14,6 @@ var pointMasses:Array = [];
 var cachedRects:Array = [];
 
 var lastEditKey:int = -1;
-var hasGennedRects:bool = false;
 
 func init(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	blocks = blockTypes
@@ -25,7 +24,6 @@ func init(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2
 	for block in blockTypes.array.size():
 		pointMasses.push_back([])
 		cachedRects.push_back([])
-	#Cut and paste from update chunk due to how removing works
 	cachedRects[0] = Util.greedyRect(gridData.binArrays[0])
 	_addRenderBoxes(0)
 
@@ -35,11 +33,13 @@ func _process(_delta):
 			var key:int = pointToKey(get_local_mouse_position())[0]
 			if key != -1 && key != lastEditKey:
 				lastEditKey = key
-				var oldVal:int = gridData.read(key)
+				var oldVal:int = gridData.read(key)[0]
 				var newVal:int = 1 if oldVal == 0 else 0;
 				gridData.modify(key, newVal)
 				updateChunk([oldVal, newVal])
-		elif Input.is_action_just_released("click"): lastEditKey = -1
+				var groups = Util.findGroups(gridData.mergeStrings(blocks.solidBlocks.keys()), gridDims)
+				print(groups.size())
+			elif Input.is_action_just_released("click"): lastEditKey = -1
 
 func updateChunk(changedVals:Array[int]):
 	for change in changedVals: #Remove Old Boxes
