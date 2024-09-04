@@ -7,9 +7,13 @@ var binArrays:Array = [];
 func _init(dimensions:Vector2i, uniqueBlocks:int):
 	if dimensions.x > 64 || dimensions.y > 64:
 		push_error("packedGrid cannot support dimensions larger than 64, if something is broken this is probably why")
-	super(dimensions.x * dimensions.y, uniqueBlocks)
+	super(dimensions.x * dimensions.y, Util.bitsToStore(uniqueBlocks))
 	gridDims = dimensions
 	typeCount = uniqueBlocks
+	for type in typeCount:
+		binArrays.push_back([])
+		for row in gridDims.y:
+			binArrays[type].push_back(0)
 
 #region Mostly internal utility functions
 
@@ -26,8 +30,8 @@ func modify(index:int, newVal:int):
 	data[boxNum] += Util.leftShift(newVal - oldVal, _getPadding(index, boxNum))
 	var coords = Util.decode(index, gridDims.x)
 	var mask = 1 << coords.x
-	#binArrays[newVal][coords.y] |= mask
-	#binArrays[oldVal][coords.y] &= ~mask
+	binArrays[newVal][coords.y] |= mask
+	binArrays[oldVal][coords.y] &= ~mask
 	return oldVal
 
 func rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:

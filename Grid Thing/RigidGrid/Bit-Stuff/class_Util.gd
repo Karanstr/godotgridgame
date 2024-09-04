@@ -94,7 +94,7 @@ static func extendMask(num:int, mask:int) -> int:
 
 #endregion
 
-#region BStrings & BArrays
+#region BStrings & BArrays5
 
 static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
 	var checks:Array = [
@@ -103,7 +103,8 @@ static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
 	]
 	return checks 
 
-static func findGroups(binaryArray:Array[int]):
+static func findGroups(binArray:Array[int]):
+	var binaryArray = binArray.duplicate()
 	var checks:Array = []
 	#Can't search an empty array
 	if (binaryArray.all(func(r): return r == 0)): return 0
@@ -126,7 +127,8 @@ static func findGroups(binaryArray:Array[int]):
 			checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
 	if (binaryArray.any(func(r): return r != 0)): print("Not attached")
 
-static func greedyRect(binaryArray:Array[int]) -> Array:
+static func greedyRect(binArray:Array) -> Array:
+	var binaryArray = binArray.duplicate()
 	var meshedBoxes:Array = []
 	#Actual meshing
 	while (binaryArray.any(func(r): return r != 0)): #While grid hasn't been fully swept

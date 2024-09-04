@@ -21,16 +21,13 @@ func init(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2
 	gridDims = gridDimensions
 	chunkDims = chunkDimensions
 	blockDims = chunkDims/Vector2(gridDims)
-	gridData = packedGrid.new(gridDims, Util.bitsToStore(blocks.array.size()))
+	gridData = packedGrid.new(gridDims, blocks.array.size())
 	for block in blockTypes.array.size():
 		pointMasses.push_back([])
 		cachedRects.push_back([])
 	#Cut and paste from update chunk due to how removing works
-	for change in blocks.array.size():
-		#cachedRects[change] = Util.greedyRect(gridData.binArray[change])
-		_addRenderBoxes(change)
-		_addPhysicsBoxes(change)
-	_updateCOM(range(blocks.array.size()))
+	cachedRects[0] = Util.greedyRect(gridData.binArrays[0])
+	_addRenderBoxes(0)
 
 func _process(_delta):
 	if (editable):
