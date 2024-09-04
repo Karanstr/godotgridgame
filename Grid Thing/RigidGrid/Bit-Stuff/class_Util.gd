@@ -94,7 +94,7 @@ static func extendMask(num:int, mask:int) -> int:
 
 #endregion
 
-#region BStrings & BArrays5
+#region BStrings & BArrays
 
 static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
 	var checks:Array = [

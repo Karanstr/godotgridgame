@@ -13,6 +13,7 @@ func _init(dimensions:Vector2i, uniqueBlocks:int):
 	for type in typeCount: 
 		binArrays.push_back([])
 	recacheBinaryStrings()
+
 #region Mostly internal utility functions
 
 #Overloaded super.modify to also update the binArrays
