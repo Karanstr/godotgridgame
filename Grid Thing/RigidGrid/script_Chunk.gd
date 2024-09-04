@@ -46,7 +46,7 @@ func updateChunk(changedVals:Array[int]):
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
 	for change in changedVals: #Add Current Boxes
-		#cachedRects[change] = Util.greedyRect(gridData.binArray[change])
+		cachedRects[change] = Util.greedyRect(gridData.binArrays[change])
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
 	_updateCOM(changedVals)

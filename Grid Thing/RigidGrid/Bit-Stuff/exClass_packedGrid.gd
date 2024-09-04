@@ -10,11 +10,9 @@ func _init(dimensions:Vector2i, uniqueBlocks:int):
 	super(dimensions.x * dimensions.y, Util.bitsToStore(uniqueBlocks))
 	gridDims = dimensions
 	typeCount = uniqueBlocks
-	for type in typeCount:
+	for type in typeCount: 
 		binArrays.push_back([])
-		for row in gridDims.y:
-			binArrays[type].push_back(0)
-
+	recacheBinaryStrings()
 #region Mostly internal utility functions
 
 #Overloaded super.modify to also update the binArrays
@@ -72,7 +70,6 @@ func recacheBinaryStrings():
 		for row in gridDims.y:
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays = newBinaryStrings
-	return true
 
 #endregion
 
