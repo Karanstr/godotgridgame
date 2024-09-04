@@ -35,6 +35,13 @@ static func rightShift(number:int, bits:int) -> int:
 		shiftedNumber |= saveSign
 	return shiftedNumber
 
+#Idk if I like these two being here yet..
+static func decode(key:int, rowSize:int) -> Vector2i:
+	return Vector2i(key%rowSize, key/rowSize)
+
+static func encode(coord:Vector2i, rowSize:int) -> int:
+	return coord.y*rowSize + coord.x
+
 #endregion
 
 #region Mask Functions 
@@ -143,7 +150,6 @@ static func greedyRect(binaryArray:Array[int]) -> Array:
 							break #Mask does not exist in row, shape is complete
 					meshedBoxes.push_back(box);
 	return meshedBoxes
-
 
 #endregion
 

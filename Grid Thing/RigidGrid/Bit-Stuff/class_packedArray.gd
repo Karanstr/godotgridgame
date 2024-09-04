@@ -1,4 +1,4 @@
-class_name bitField
+class_name packedArray
 
 static var boxSize = 64 #64 bit Int
 
@@ -9,19 +9,14 @@ var packsPerBox:int;
 var totalBoxes:int;
 var data:Array[int] = [];
 
-var bitStrings:Array = [];
-
-#Constructor
-static func create(packNum:int, packSiz:int) -> bitField:
-	var field = bitField.new();
-	field.totalPacks = packNum;
-	field.packSize = packSiz; 
-	field.packMask = 2**packSiz - 1;
-	field.packsPerBox = boxSize/packSiz
-	field.totalBoxes = ceil(float(packNum)/field.packsPerBox);
-	for box in field.totalBoxes:
-		field.data.push_back(0);
-	return field;
+func _init(packNum:int, bitsInPack:int):
+	totalPacks = packNum;
+	packSize = bitsInPack; 
+	packMask = 2**bitsInPack - 1;
+	packsPerBox = boxSize/bitsInPack
+	totalBoxes = ceil(float(packNum)/packsPerBox);
+	for box in totalBoxes:
+		data.push_back(0);
 
 func _getBox(index:int):
 	return int (index/packsPerBox)
@@ -65,27 +60,6 @@ func readSection(packsRemaining:int, startIndex:int):
 		currentBox += 1;
 		remPacksInCurBox = boxSize - packsInNextBox;
 	return section
-
-#Will only read up to the first 64 packs of the row
-func rowToInt(rowLength:int, rowNum:int, matchedValues:Array[int]) -> Array[int]:
-	if (rowLength > 64):
-		print(String.num_int64(rowLength) + " is larger than 64 bits")
-		return []
-	var rows:Array[int] = [];
-	for block in matchedValues.size():
-		rows.push_back(0)
-	var index:int = rowLength*rowNum;
-	var rowData:Array[int] = readSection(rowLength, index);
-	var packCounter:int = 0;
-	for i in rowLength:
-		var dataBox:int = packCounter/packsPerBox;
-		var val:int = rowData[dataBox] & packMask;
-		rowData[dataBox] = Util.rightShift(rowData[dataBox], packSize);
-		for block in matchedValues.size():
-			if (matchedValues[block] == val):
-				rows[block] += 1 << (packCounter % boxSize);
-		packCounter += 1;
-	return rows
 
 #endregion
 

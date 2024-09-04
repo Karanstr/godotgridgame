@@ -3,7 +3,7 @@ extends Node2D
 var blocks:BlockTypes;
 @export var editable:bool = true;
 
-var gridData:bitField;
+var gridData:packedGrid;
 var gridDims:Vector2i;
 var blockDims:Vector2;
 var chunkDims:Vector2;
@@ -14,17 +14,23 @@ var pointMasses:Array = [];
 var cachedRects:Array = [];
 
 var lastEditKey:int = -1;
+var hasGennedRects:bool = false;
 
 func init(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	blocks = blockTypes
 	gridDims = gridDimensions
 	chunkDims = chunkDimensions
 	blockDims = chunkDims/Vector2(gridDims)
-	gridData = bitField.create(gridDims.x * gridDims.y, Util.bitsToStore(blocks.array.size()))
+	gridData = packedGrid.new(gridDims, Util.bitsToStore(blocks.array.size()))
 	for block in blockTypes.array.size():
 		pointMasses.push_back([])
 		cachedRects.push_back([])
-	updateChunk([0], true)
+	#Cut and paste from update chunk due to how removing works
+	for change in blocks.array.size():
+		#cachedRects[change] = Util.greedyRect(gridData.binArray[change])
+		_addRenderBoxes(change)
+		_addPhysicsBoxes(change)
+	_updateCOM(range(blocks.array.size()))
 
 func _process(_delta):
 	if (editable):
@@ -34,29 +40,21 @@ func _process(_delta):
 				lastEditKey = key
 				var oldVal:int = gridData.read(key)
 				var newVal:int = 1 if oldVal == 0 else 0;
-				gridData.assign(key, newVal)
+				gridData.modify(key, newVal)
 				updateChunk([oldVal, newVal])
 		elif Input.is_action_just_released("click"): lastEditKey = -1
 
-func updateChunk(changedVals:Array[int], firstCall:bool = false):
-	if (!firstCall):
-		for change in changedVals: #Remove Old Boxes
-			_removeRenderBoxes(change)
-			_removePhysicsBoxes(change)
-			#cachedRects[change] = Util.greedyRect(bArray[change])
-	if (!firstCall):
-		_updateCOM(changedVals)
+func updateChunk(changedVals:Array[int]):
+	for change in changedVals: #Remove Old Boxes
+		_removeRenderBoxes(change)
+		_removePhysicsBoxes(change)
 	for change in changedVals: #Add Current Boxes
+		#cachedRects[change] = Util.greedyRect(gridData.binArray[change])
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
+	_updateCOM(changedVals)
 
 #region Stuff Unsorted
-
-func decode(key:int) -> Vector2i:
-	return Vector2i(key%gridDims.x, key/gridDims.x)
-
-func encode(coord:Vector2i) -> int:
-	return coord.y*gridDims.x + coord.x
 
 func pointToKey(point:Vector2) -> Array[int]:
 	var offset:Vector2 = Vector2(.01,.01)
@@ -65,7 +63,7 @@ func pointToKey(point:Vector2) -> Array[int]:
 		for y in range(0, 2):
 			var woint:Vector2 = offset - 2*offset*Vector2(x,y) + point
 			if woint.x > 0 && woint.x < chunkDims.x && woint.y > 0 && woint.y < chunkDims.y:
-				keys.append(encode(woint/blockDims))
+				keys.append(Util.encode(woint/blockDims, gridDims.x))
 			else:
 				keys.append(-1)
 	return keys
@@ -92,8 +90,8 @@ func _updateCOM(changedVals:Array[int]):
 
 func _reduceToPointMasses(blockType:int):
 	var blockPointMasses:Array = [];
-	for recti in grid.cachedRects[blockType]:
-		var blockWeight = thisblockTypes.array[blockType].weight
+	for recti in cachedRects[blockType]:
+		var blockWeight = blocks.array[blockType].weight
 		if (blockWeight != 0):
 			blockPointMasses.push_back(_rectToPointMass(recti, blockWeight))
 	return blockPointMasses
@@ -110,34 +108,34 @@ func _rectToPointMass(recti:Rect2i, weightPerBlock:int):
 #region Render&Physics Management
 
 func _addRenderBoxes(blockType):
-	var image = thisblockTypes.array[blockType].texture;
-	for rectNum in grid.cachedRects[blockType].size():
-		var rect = grid.cachedRects[blockType][rectNum]
+	var image = blocks.array[blockType].texture;
+	for rectNum in cachedRects[blockType].size():
+		var rect = cachedRects[blockType][rectNum]
 		var polygon = _makeRenderPolygon(rect, image)
 		polygon.name = _encodeName(rectNum, blockType)
 		add_child(polygon)
 
 func _removeRenderBoxes(blockType): 
-	for rectNum in grid.cachedRects[blockType].size():
+	for rectNum in cachedRects[blockType].size():
 		get_node(_encodeName(rectNum, blockType)).free()
 
 func _addPhysicsBoxes(blockType:int):
-	if (thisblockTypes.array[blockType].collision == true):
-		for rectNum in grid.cachedRects[blockType].size():
-			var rect = grid.cachedRects[blockType][rectNum]
+	if (blocks.array[blockType].collision == true):
+		for rectNum in cachedRects[blockType].size():
+			var rect = cachedRects[blockType][rectNum]
 			var colBox:CollisionShape2D = _makeColBox(rect);
 			colBox.name = _encodeName(rectNum, blockType)
 			get_node("../../").add_child(colBox)
 
 func _removePhysicsBoxes(blockType:int):
-	if (thisblockTypes.array[blockType].collision == true):
-		for rectNum in grid.cachedRects[blockType].size():
+	if (blocks.array[blockType].collision == true):
+		for rectNum in cachedRects[blockType].size():
 			get_node("../../" + _encodeName(rectNum, blockType)).free()
 
 func _encodeName(number, blockType):
 	#Chunk Name, followed by encoded name
 	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
-	return name + " " + String.num_int64((number << grid.blocks.packSize) + blockType)
+	return name + " " + String.num_int64((number << gridData.packSize) + blockType)
 
 func _makeRenderPolygon(recti, texture):
 	var rect = _rectiToRect(recti);
@@ -149,7 +147,7 @@ func _makeRenderPolygon(recti, texture):
 	var polygon = Polygon2D.new();
 	polygon.polygon = data;
 	polygon.texture = texture;
-	polygon.texture_scale = texture.get_size()/grid.blockLength
+	polygon.texture_scale = texture.get_size()/blockDims
 	return polygon
 
 func _makeColBox(recti:Rect2i):
@@ -162,8 +160,8 @@ func _makeColBox(recti:Rect2i):
 
 func _rectiToRect(recti:Rect2i):
 	var rect:Rect2 = Rect2(recti)
-	rect.position *= grid.blockLength
-	rect.size *= grid.blockLength
+	rect.position *= blockDims
+	rect.size *= blockDims
 	return rect
 
 #endregion
