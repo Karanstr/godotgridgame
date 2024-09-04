@@ -10,7 +10,6 @@ var chunkMass:int = 0
 var lastEditKey:int = -1;
 
 func init(gridSize:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
-	print(range(5)[0])
 	thisblockTypes = blockTypes
 	for block in blockTypes.array.size():
 		pointMasses.push_back([])
@@ -27,7 +26,6 @@ func _process(_delta):
 				var newVal:int = 1 if oldVal == 0 else 0;
 				grid.assign(key, newVal)
 				updateChunk([oldVal, newVal])
-				print(grid.fasterWalkAround([1]))
 		if Input.is_action_just_released("click"):
 			lastEditKey = -1
 

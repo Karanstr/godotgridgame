@@ -58,7 +58,7 @@ static func findMasksInBitRow(row:int) -> Array:
 			curMask = (curMask << 1) + 1
 			row = rightShift(row, 1)
 			maskSize += 1;
-		curMask <<= leading0s;
+		curMask = leftShift(curMask, leading0s);
 		masks.push_back([curMask, leading0s, maskSize]);
 		leading0s += maskSize;
 	return masks

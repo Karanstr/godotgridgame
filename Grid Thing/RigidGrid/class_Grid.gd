@@ -92,13 +92,14 @@ func greedyRect(updateBlocks:Array[int]) -> Array:
 		meshedBoxes.push_back([]);
 	#Actual meshing
 	for block in updateBlocks.size():
-		while (blockGrids[block].max() != 0): #While grid hasn't been fully swept
+		while (blockGrids[block].max() + blockGrids[block].min() != 0): #While grid hasn't been fully swept
 			for row in dimensions.y: #Search each row
 				var rowData:int = blockGrids[block][row];
 				if (rowData == 0): #Row is empty
+					
 					continue #Go on to next row
 				else: #At least one mask exists in current row
-					var masks:Array = Util.findMasksInBitRow(rowData); 
+					var masks:Array = Util.findMasksInBitRow(rowData);
 					for maskData in masks: #For each mask found
 						var curMask:int = maskData[0]
 						var box:Rect2i = Rect2i(0,0,0,0)
@@ -121,7 +122,7 @@ func reCacheRects(blocksChanged:Array[int]) -> void:
 
 #endregion
 
-#region Graph Theorying
+#region Connectivity
 
 func nextChecks(mask:int, row:int):
 	var left = Util.leftShift(mask, 1)
@@ -200,7 +201,6 @@ func fasterWalkAround(blocksConnected:Array[int]):
 	for row in dimensions.y: #Find first row with data
 		if (binaryArray[row] != 0):
 			var fullMask = Util.findFirstMask(binaryArray[row])
-			print(fullMask)
 			checks.append_array(makeNextChecks(fullMask, row))
 			binaryArray[row] &= ~fullMask
 			break
@@ -210,7 +210,6 @@ func fasterWalkAround(blocksConnected:Array[int]):
 			curCheck = checks.pop_back()
 		if curCheck == null:
 			continue
-		print(curCheck)
 		var newMask = binaryArray[curCheck.y] & curCheck.x
 		if (newMask != 0):
 			var masks:Array[int] = [];
