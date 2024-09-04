@@ -9,6 +9,8 @@ var packsPerBox:int;
 var totalBoxes:int;
 var data:Array[int] = [];
 
+var bitStrings:Array = [];
+
 #Constructor
 static func create(packNum:int, packSiz:int) -> bitField:
 	var field = bitField.new();
@@ -21,13 +23,14 @@ static func create(packNum:int, packSiz:int) -> bitField:
 		field.data.push_back(0);
 	return field;
 
-#Instance function start
 func _getBox(index:int):
 	return int (index/packsPerBox)
 
 func _getPadding(index:int, boxNum:int):
 	var packNum:int = index - boxNum*packsPerBox
 	return packNum*packSize
+
+#region I/O
 
 func read(index:int):
 	var boxNum:int = _getBox(index);
@@ -83,3 +86,7 @@ func rowToInt(rowLength:int, rowNum:int, matchedValues:Array[int]) -> Array[int]
 				rows[block] += 1 << (packCounter % boxSize);
 		packCounter += 1;
 	return rows
+
+#endregion
+
+#

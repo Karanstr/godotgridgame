@@ -45,41 +45,41 @@ static func genMask(packSize:int, numOfPacks:int, instanceMask:int) -> int:
 		mask = (mask << packSize) | instanceMask
 	return mask
 
-static func findMasksInBitRow(row:int) -> Array:
+static func findMasksInInt(num:int) -> Array:
 	var masks:Array = [];
 	var leading0s:int = 0;
-	while row != 0:
+	while num != 0:
 		var curMask:int = 0;
 		var maskSize:int = 0;
-		while row & 1 == 0:
-			row = rightShift(row, 1)
+		while num & 1 == 0:
+			num = rightShift(num, 1)
 			leading0s += 1
-		while row & 1 == 1:
+		while num & 1 == 1:
 			curMask = (curMask << 1) + 1
-			row = rightShift(row, 1)
+			num = rightShift(num, 1)
 			maskSize += 1;
 		curMask = leftShift(curMask, leading0s);
 		masks.push_back([curMask, leading0s, maskSize]);
 		leading0s += maskSize;
 	return masks
 
-static func findFirstMask(row:int) -> int:
-	var mask:int = findRightSetBit(row);
+static func findFirstMask(num:int) -> int:
+	var mask:int = findRightSetBit(num);
 	while true:
-		var nextMask = ((mask << 1) | mask) & row
+		var nextMask = ((mask << 1) | mask) & num
 		if (mask == nextMask):
 			break
 		mask = nextMask
 	return mask
 
-static func extendMask(row:int, mask:int) -> int:
+static func extendMask(num:int, mask:int) -> int:
 	while true:
-		var newMask = (leftShift(mask, 1) & row) | mask
+		var newMask = (leftShift(mask, 1) & num) | mask
 		if (newMask == mask):
 			break
 		mask = newMask
 	while true:
-		var newMask = (rightShift(mask, 1) & row) | mask
+		var newMask = (rightShift(mask, 1) & num) | mask
 		if (newMask == mask):
 			break
 		mask = newMask
@@ -89,21 +89,20 @@ static func extendMask(row:int, mask:int) -> int:
 
 #region BStrings & BArrays
 
-static func makeNextChecks(mask:int, row:int, maxRow:int):
+static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
 	var checks:Array = [
-	false if row + 1 == maxRow else Vector2i(mask, row + 1),
-	false if row - 1 == -1 else Vector2i(mask, row - 1)
+	false if rowNum + 1 == maxRow else Vector2i(mask, rowNum + 1),
+	false if rowNum - 1 == -1 else Vector2i(mask, rowNum - 1)
 	]
 	return checks 
 
-static func walkGrid(binaryArray:Array[int]):
-	var foundBlocks = 1;
+static func findGroups(binaryArray:Array[int]):
 	var checks:Array = []
 	#Can't search an empty array
 	if (binaryArray.all(func(r): return r == 0)): return 0
 	for row in binaryArray.size(): #Find first row with data
 		if (binaryArray[row] != 0):
-			var fullMask = Util.findFirstMask(binaryArray[row])
+			var fullMask = findFirstMask(binaryArray[row])
 			checks.append_array(makeNextChecks(fullMask, row, binaryArray.size()))
 			binaryArray[row] &= ~fullMask
 			break
@@ -113,14 +112,37 @@ static func walkGrid(binaryArray:Array[int]):
 		if curCheck == null: break #checks is empty
 		var newMask = binaryArray[curCheck.y] & curCheck.x
 		while newMask != 0:
-			foundBlocks += 1;
-			var foundMask = Util.findFirstMask(newMask)
+			var foundMask = findFirstMask(newMask)
 			newMask &= ~foundMask
-			var fullMask = Util.extendMask(binaryArray[curCheck.y], foundMask) 
+			var fullMask = extendMask(binaryArray[curCheck.y], foundMask) 
 			binaryArray[curCheck.y] &= ~fullMask
 			checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
 	if (binaryArray.any(func(r): return r != 0)): print("Not attached")
-	return foundBlocks
+
+static func greedyRect(binaryArray:Array[int]) -> Array:
+	var meshedBoxes:Array = []
+	#Actual meshing
+	while (binaryArray.any(func(r): return r != 0)): #While grid hasn't been fully swept
+		for row in binaryArray.size(): #Search each row
+			var rowData:int = binaryArray[row];
+			if (rowData == 0): #Row is empty
+				continue #Go on to next row
+			else: #At least one mask exists in current row
+				var masks:Array = findMasksInInt(rowData);
+				for maskData in masks: #For each mask found
+					var curMask:int = maskData[0]
+					var box:Rect2i = Rect2i(0,0,0,0)
+					box.position.y = row;
+					box.position.x = maskData[1];
+					box.size.x = maskData[2];
+					for curRowSearching in range(row, binaryArray.size()): #Search each remaining row
+						if (binaryArray[curRowSearching] & curMask == curMask): #Mask exists in row
+							binaryArray[curRowSearching] &= ~curMask; #Eliminate mask from row
+							box.size.y += 1
+						else:
+							break #Mask does not exist in row, shape is complete
+					meshedBoxes.push_back(box);
+	return meshedBoxes
 
 
 #endregion

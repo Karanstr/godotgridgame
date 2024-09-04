@@ -1,46 +1,76 @@
 extends Node2D
 
-var grid:Grid; 
-var thisblockTypes:BlockTypes;
+var blocks:BlockTypes;
 @export var editable:bool = true;
+
+var gridData:bitField;
+var gridDims:Vector2i;
+var blockDims:Vector2;
+var chunkDims:Vector2;
 var chunkCOM:Vector2;
-var pointMasses:Array = []
-var chunkMass:int = 0
+var chunkMass:int = 0;
+
+var pointMasses:Array = [];
+var cachedRects:Array = [];
 
 var lastEditKey:int = -1;
 
-func init(gridSize:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
-	thisblockTypes = blockTypes
+func init(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
+	blocks = blockTypes
+	gridDims = gridDimensions
+	chunkDims = chunkDimensions
+	blockDims = chunkDims/Vector2(gridDims)
+	gridData = bitField.create(gridDims.x * gridDims.y, Util.bitsToStore(blocks.array.size()))
 	for block in blockTypes.array.size():
 		pointMasses.push_back([])
-	grid = Grid.create(gridSize, blockTypes.array.size(), gridDimensions)
+		cachedRects.push_back([])
 	updateChunk([0], true)
 
 func _process(_delta):
 	if (editable):
 		if Input.is_action_pressed("click"):
-			var key:int = grid.pointToKey(get_local_mouse_position())[0]
+			var key:int = pointToKey(get_local_mouse_position())[0]
 			if key != -1 && key != lastEditKey:
 				lastEditKey = key
-				var oldVal:int = grid.read(key)
+				var oldVal:int = gridData.read(key)
 				var newVal:int = 1 if oldVal == 0 else 0;
-				grid.assign(key, newVal)
+				gridData.assign(key, newVal)
 				updateChunk([oldVal, newVal])
-				print(Util.walkGrid(grid.mergeStrings(Array(thisblockTypes.solidBlocks.keys(), TYPE_INT, "", null))))
 		elif Input.is_action_just_released("click"): lastEditKey = -1
-			
 
 func updateChunk(changedVals:Array[int], firstCall:bool = false):
 	if (!firstCall):
 		for change in changedVals: #Remove Old Boxes
 			_removeRenderBoxes(change)
 			_removePhysicsBoxes(change)
-	grid.reCacheRects(changedVals);
+			#cachedRects[change] = Util.greedyRect(bArray[change])
 	if (!firstCall):
 		_updateCOM(changedVals)
 	for change in changedVals: #Add Current Boxes
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
+
+#region Stuff Unsorted
+
+func decode(key:int) -> Vector2i:
+	return Vector2i(key%gridDims.x, key/gridDims.x)
+
+func encode(coord:Vector2i) -> int:
+	return coord.y*gridDims.x + coord.x
+
+func pointToKey(point:Vector2) -> Array[int]:
+	var offset:Vector2 = Vector2(.01,.01)
+	var keys:Array[int] = [];
+	for x in range(0, 2):
+		for y in range(0, 2):
+			var woint:Vector2 = offset - 2*offset*Vector2(x,y) + point
+			if woint.x > 0 && woint.x < chunkDims.x && woint.y > 0 && woint.y < chunkDims.y:
+				keys.append(encode(woint/blockDims))
+			else:
+				keys.append(-1)
+	return keys
+
+#endregion
 
 #region Mass Management
 
