@@ -84,7 +84,6 @@ func keyToPoint(key:int) -> Vector2:
 #region Recting
 
 func greedyRect(updateBlocks:Array[int]) -> Array:
-	#_recacheBinaryStrings()
 	var blockGrids:Array = binaryStrings_block_row.duplicate(true);
 	var meshedBoxes:Array = []
 	#Set up initial arrays
@@ -92,11 +91,10 @@ func greedyRect(updateBlocks:Array[int]) -> Array:
 		meshedBoxes.push_back([]);
 	#Actual meshing
 	for block in updateBlocks.size():
-		while (blockGrids[block].max() + blockGrids[block].min() != 0): #While grid hasn't been fully swept
+		while (blockGrids[block].any(func(r): return r != 0)): #While grid hasn't been fully swept
 			for row in dimensions.y: #Search each row
 				var rowData:int = blockGrids[block][row];
 				if (rowData == 0): #Row is empty
-					
 					continue #Go on to next row
 				else: #At least one mask exists in current row
 					var masks:Array = Util.findMasksInBitRow(rowData);
@@ -141,7 +139,7 @@ func walkAround(blocksConnected:Array[int]):
 		binaryArray.push_back(0)
 		for block in blocksConnected:
 			binaryArray[row] |= binaryStrings_block_row[block][row]
-	if (binaryArray.max() == 0): #Can't search through a non array
+	if (binaryArray.any(func(r): return r != 0)): #Can't search through a non array
 		return 0
 	var foundBlocks = 1;
 	var dirSave = [
@@ -194,9 +192,9 @@ func fasterWalkAround(blocksConnected:Array[int]):
 	var binaryArray:Array[int] = []
 	for row in dimensions.y:
 		binaryArray.push_back(0)
-		for block in blocksConnected:
+		for block in blocksConnected: #Combine BStrings into single string per row
 			binaryArray[row] |= binaryStrings_block_row[block][row]
-	if (binaryArray.max() == 0): #Can't search through a non array
+	if (binaryArray.any(func(r): return r != 0)): #Can't search through a non array
 		return 0
 	for row in dimensions.y: #Find first row with data
 		if (binaryArray[row] != 0):
