@@ -26,8 +26,9 @@ func _process(_delta):
 				var newVal:int = 1 if oldVal == 0 else 0;
 				grid.assign(key, newVal)
 				updateChunk([oldVal, newVal])
-		if Input.is_action_just_released("click"):
-			lastEditKey = -1
+				print(Util.walkGrid(grid.mergeStrings(Array(thisblockTypes.solidBlocks.keys(), TYPE_INT, "", null))))
+		elif Input.is_action_just_released("click"): lastEditKey = -1
+			
 
 func updateChunk(changedVals:Array[int], firstCall:bool = false):
 	if (!firstCall):

@@ -87,4 +87,42 @@ static func extendMask(row:int, mask:int) -> int:
 
 #endregion
 
+#region BStrings & BArrays
+
+static func makeNextChecks(mask:int, row:int, maxRow:int):
+	var checks:Array = [
+	false if row + 1 == maxRow else Vector2i(mask, row + 1),
+	false if row - 1 == -1 else Vector2i(mask, row - 1)
+	]
+	return checks 
+
+static func walkGrid(binaryArray:Array[int]):
+	var foundBlocks = 1;
+	var checks:Array = []
+	#Can't search an empty array
+	if (binaryArray.all(func(r): return r == 0)): return 0
+	for row in binaryArray.size(): #Find first row with data
+		if (binaryArray[row] != 0):
+			var fullMask = Util.findFirstMask(binaryArray[row])
+			checks.append_array(makeNextChecks(fullMask, row, binaryArray.size()))
+			binaryArray[row] &= ~fullMask
+			break
+	while checks.is_empty() == false:
+		var curCheck = checks.pop_back()
+		while typeof(curCheck) == 1: curCheck = checks.pop_back()
+		if curCheck == null: break #checks is empty
+		var newMask = binaryArray[curCheck.y] & curCheck.x
+		while newMask != 0:
+			foundBlocks += 1;
+			var foundMask = Util.findFirstMask(newMask)
+			newMask &= ~foundMask
+			var fullMask = Util.extendMask(binaryArray[curCheck.y], foundMask) 
+			binaryArray[curCheck.y] &= ~fullMask
+			checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
+	if (binaryArray.any(func(r): return r != 0)): print("Not attached")
+	return foundBlocks
+
+
+#endregion
+
 #

@@ -15,7 +15,7 @@ func addNewChunk(_chunkLocation:Vector2i, blockTypes):
 	var newChunk:Node2D = Node2D.new();
 	newChunk.set_script(chunkScript);
 	newChunk.name = "0";
-	newChunk.init(Vector2(64, 64), blockTypes, Vector2i(64,64));
+	newChunk.init(Vector2(64, 64), blockTypes, Vector2i(8,8));
 	add_child(newChunk)
 
 func removeChunk(chunkName:String):

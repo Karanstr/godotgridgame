@@ -46,6 +46,15 @@ func _recacheBinaryStrings():
 	binaryStrings_block_row = newBinaryStrings
 	return true
 
+#Move this function at some point to Util
+func mergeStrings(values:Array[int]):
+	var binaryArray:Array[int] = [];
+	for row in dimensions.y:
+		binaryArray.push_back(0)
+		for value in values: #Combine BStrings into single string per row
+			binaryArray[row] |= binaryStrings_block_row[value][row]
+	return binaryArray
+
 #region I/Oing
 func decode(key:int) -> Vector2i:
 	return Vector2i(key%dimensions.x, key/dimensions.x)
@@ -117,112 +126,6 @@ func reCacheRects(blocksChanged:Array[int]) -> void:
 	var newRects:Array = greedyRect(blocksChanged);
 	for block in blocksChanged:
 		cachedRects[block] = newRects[block]
-
-#endregion
-
-#region Connectivity
-
-func nextChecks(mask:int, row:int):
-	var left = Util.leftShift(mask, 1)
-	var right = Util.rightShift(mask, 1)
-	var checks = [
-	false if left == 0 else Vector2i(left, row),
-	false if right == 0 else Vector2i(right, row),
-	false if row + 1 == dimensions.y else Vector2i(mask, row + 1),
-	false if row - 1 == -1 else Vector2i(mask, row - 1)
-	]
-	return checks
-
-func walkAround(blocksConnected:Array[int]):
-	var binaryArray:Array[int] = []
-	for row in dimensions.y:
-		binaryArray.push_back(0)
-		for block in blocksConnected:
-			binaryArray[row] |= binaryStrings_block_row[block][row]
-	if (binaryArray.any(func(r): return r != 0)): #Can't search through a non array
-		return 0
-	var foundBlocks = 1;
-	var dirSave = [
-		[0, 2, 3],
-		[1, 2, 3],
-		[0, 1, 2],
-		[0, 1, 3]
-	]
-	var checks:Array = [[], [], [], []];
-	for row in dimensions.y: #Find first row with data
-		if (binaryArray[row] != 0):
-			var mask = Util.findRightSetBit(binaryArray[row])
-			var newChecks = nextChecks(mask, row)
-			for direction in 4:
-				checks[direction].push_back(newChecks[direction])
-			binaryArray[row] &= ~mask
-			break
-	var allFound = false 
-	while !allFound:
-		var empty = 0;
-		for dir in checks.size():
-			var check = checks[dir].pop_back()
-			while (typeof(check) == 1): #Typeof is stupid
-				check = checks[dir].pop_back()
-			if (check == null):
-				empty += 1
-			else:
-				if (binaryArray[check.y] & check.x != 0):
-					foundBlocks += 1
-					binaryArray[check.y] &= ~check.x
-					var newChecks = nextChecks(check.x, check.y)
-					for direction in dirSave[dir]:
-						checks[direction].push_back(newChecks[direction])
-		if empty == 4:
-			allFound = true
-	if (binaryArray.max() != 0):
-		print("Not attached")
-	return foundBlocks
-
-func makeNextChecks(mask:int, row:int):
-	var checks:Array = [
-	false if row + 1 == dimensions.y else Vector2i(mask, row + 1),
-	false if row - 1 == -1 else Vector2i(mask, row - 1)
-	]
-	return checks 
-
-func fasterWalkAround(blocksConnected:Array[int]):
-	var foundBlocks = 1;
-	var checks:Array = []
-	var binaryArray:Array[int] = []
-	for row in dimensions.y:
-		binaryArray.push_back(0)
-		for block in blocksConnected: #Combine BStrings into single string per row
-			binaryArray[row] |= binaryStrings_block_row[block][row]
-	if (binaryArray.any(func(r): return r != 0)): #Can't search through a non array
-		return 0
-	for row in dimensions.y: #Find first row with data
-		if (binaryArray[row] != 0):
-			var fullMask = Util.findFirstMask(binaryArray[row])
-			checks.append_array(makeNextChecks(fullMask, row))
-			binaryArray[row] &= ~fullMask
-			break
-	while checks.is_empty() == false:
-		var curCheck = checks.pop_back()
-		while typeof(curCheck) == 1:
-			curCheck = checks.pop_back()
-		if curCheck == null:
-			continue
-		var newMask = binaryArray[curCheck.y] & curCheck.x
-		if (newMask != 0):
-			var masks:Array[int] = [];
-			while newMask != 0:
-				foundBlocks += 1;
-				var foundMask = Util.findFirstMask(newMask)
-				newMask &= ~foundMask
-				masks.push_back(foundMask)
-			for mask in masks:
-				var fullMask = Util.extendMask(binaryArray[curCheck.y], mask) 
-				binaryArray[curCheck.y] &= ~fullMask
-				checks.append_array(makeNextChecks(fullMask, curCheck.y))
-	if (binaryArray.max() != 0):
-		print("Not attached")
-	return foundBlocks
 
 #endregion
 
