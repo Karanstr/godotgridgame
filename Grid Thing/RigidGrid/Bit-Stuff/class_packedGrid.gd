@@ -1,6 +1,6 @@
 class_name packedGrid extends Util
 
-var packedData:packedArray;
+var packedData:fixedPackedArray;
 var gridDims:Vector2i;
 var typeCount:int;
 var binArrays:Array = [];
@@ -8,7 +8,7 @@ var binArrays:Array = [];
 func _init(dimensions:Vector2i, uniqueBlocks:int):
 	if dimensions.x > 64 || dimensions.y > 64:
 		push_error("packedGrid cannot support dimensions larger than 64, if something is broken this is probably why")
-	packedData = packedArray.new(dimensions.x * dimensions.y, Util.bitsToStore(uniqueBlocks));
+	packedData = fixedPackedArray.new(dimensions.x * dimensions.y, Util.bitsToStore(uniqueBlocks));
 	gridDims = dimensions
 	typeCount = uniqueBlocks
 	for type in typeCount: 

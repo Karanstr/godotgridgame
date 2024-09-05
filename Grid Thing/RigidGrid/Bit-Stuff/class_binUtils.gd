@@ -166,7 +166,7 @@ static func greedyRect(binArray:Array) -> Array:
 
 #region binArray Handling Functions
 
-class packedArray:
+class fixedPackedArray:
 	var array:Array[int] = [];
 	var totalPacks:int;
 	var packSize:int;
@@ -217,7 +217,14 @@ static func readSection(array:Array[int], packs:int, startIndex:int = 0, packSiz
 static func packArray(array:Array[int]):
 	if array.min() < 0:
 		return array
-	var newArray = packedArray.new(array.size(), bitsToStore(array.max()))
+	var packedArray = fixedPackedArray.new(array.size(), bitsToStore(array.max()))
+	for box in packedArray.totalBoxes:
+		for pack in packedArray.packsPerBox:
+			packedArray[box] |= array[box*packedArray.packsPerBox + pack] << pack*packedArray.packSize
+	return packArray
+
+static func unpackArray(packArray:fixedPackedArray):
+	pass
 
 #endregion
 
