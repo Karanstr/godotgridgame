@@ -182,6 +182,33 @@ class fixedPackedArray:
 		for box in totalBoxes:
 			array.push_back(0);
 
+static func packArray(array:Array[int]):
+	if array.min() < 0:
+		print("Packing negative numbers, how silly")
+		return "NOPE"
+	var packedArray = fixedPackedArray.new(array.size(), bitsToStore(array.max()))
+	var curPack = 0
+	for box in packedArray.totalBoxes:
+		for pack in packedArray.packsPerBox:
+			packedArray.array[box] |= array[box*packedArray.packsPerBox + pack] << pack*packedArray.packSize
+			curPack += 1 
+			if (curPack >= packedArray.totalPacks): break
+	return packedArray
+
+static func unpackArray(packedArray:fixedPackedArray):
+	var unpackedArray = [];
+	var curPack = 0
+	for box in packedArray.totalBoxes:
+		for pack in packedArray.packsPerBox:
+			unpackedArray.push_back(rightShift(packedArray.array[box], pack*packedArray.packSize) & packedArray.packMask)
+			curPack += 1 
+			if (curPack >= packedArray.totalPacks): break
+
+	return unpackedArray
+
+static func reSizePackedArray(packedArray:fixedPackedArray):
+	pass
+
 static func getPosition(index, packSize:int = 1, packsPerBox:int = boxSize/packSize):
 	var boxNum = index/packsPerBox
 	var padding = (index - boxNum*packsPerBox)*packSize
@@ -192,6 +219,7 @@ static func readIndex(section:Array[int], index:int, packSize:int, packsPerBox:i
 	var position = getPosition(index, packsPerBox, packSize);
 	return [rightShift(section[position.x], position.y) & genMask(packSize, 1, 1), position]
 
+#returns oldValue
 static func modifyIndex(array:Array[int], index:int, newVal:int, packSize:int = 1, packsPerBox:int = boxSize/packSize):
 	var oldValue:Array = readIndex(array, index, packSize, packsPerBox);
 	array[oldValue[1].x] += Util.leftShift(newVal - oldValue[0], oldValue[1].y)
@@ -214,16 +242,7 @@ static func readSection(array:Array[int], packs:int, startIndex:int = 0, packSiz
 		remPacksInCurBox = boxSize - packsInNextBox;
 	return section
 
-static func packArray(array:Array[int]):
-	if array.min() < 0:
-		return array
-	var packedArray = fixedPackedArray.new(array.size(), bitsToStore(array.max()))
-	for box in packedArray.totalBoxes:
-		for pack in packedArray.packsPerBox:
-			packedArray[box] |= array[box*packedArray.packsPerBox + pack] << pack*packedArray.packSize
-	return packArray
-
-static func unpackArray(packArray:fixedPackedArray):
+static func modifySection(array:int):
 	pass
 
 #endregion

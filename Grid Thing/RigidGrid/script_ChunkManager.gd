@@ -10,6 +10,9 @@ func defineBlocks(object_BlockTypes):
 func _ready():
 	defineBlocks(blockTypes)
 	addNewChunk(Vector2i(0,0), blockTypes)
+	var test = Util.packArray([5,17,24,9])
+	print(test.array)
+	print(Util.unpackArray(test))
 
 func addNewChunk(_chunkLocation:Vector2i, blockTypesO):
 	var newChunk:Node2D = Node2D.new();

@@ -29,7 +29,6 @@ func modify(index:int, newVal:int):
 		print("Cannot access index " + String.num_int64(index))
 		return false
 	var oldVal = read(index)
-	var pos = getPosition(index, packedData.packSize, packedData.packsPerBox)
 	packedData.array[oldVal[1].x] += leftShift(newVal - oldVal[0], oldVal[1].y)
 	var coords = decode(index, gridDims.x)
 	var mask = 1 << coords.x
@@ -76,6 +75,4 @@ func recacheBinaryStrings():
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays = newBinaryStrings
 
-func exportGroup(group):
-	pass
 #
