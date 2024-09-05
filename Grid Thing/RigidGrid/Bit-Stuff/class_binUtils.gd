@@ -109,7 +109,6 @@ static func findGroups(binArray:Array[int], gridDims:Vector2i):
 	#Can't search an empty grid
 	if (binaryArray.all(func(r): return r == 0)): return []
 	var groups:Array = []
-	var curGroup = 0;
 	while (binaryArray.any(func(r): return r != 0)):
 		var groupArray:Array[int] = []
 		groupArray.resize(gridDims.y)
@@ -135,7 +134,6 @@ static func findGroups(binArray:Array[int], gridDims:Vector2i):
 				binaryArray[curCheck.y] &= ~fullMask
 				groupArray[curCheck.y] |= fullMask
 				checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
-		curGroup += 1;
 	return groups
 
 static func greedyRect(binArray:Array) -> Array:
@@ -169,8 +167,20 @@ static func greedyRect(binArray:Array) -> Array:
 #region binArray Handling Functions
 
 class packedArray:
-	func _init(totalPacks:int, packSize:int):
-		pass
+	var array:Array[int] = [];
+	var totalPacks:int;
+	var packSize:int;
+	var packMask:int;
+	var packsPerBox:int;
+	var totalBoxes:int;
+	func _init(storageNeeded:int, sizeOfPack:int):
+		totalPacks = storageNeeded
+		packSize = sizeOfPack
+		packMask = 2**packSize - 1;
+		packsPerBox = Util.boxSize/packSize
+		totalBoxes = ceili(float(totalPacks)/packsPerBox);
+		for box in totalBoxes:
+			array.push_back(0);
 
 static func getPosition(index, packSize:int = 1, packsPerBox:int = boxSize/packSize):
 	var boxNum = index/packsPerBox

@@ -132,7 +132,7 @@ func _removePhysicsBoxes(blockType:int):
 func _encodeName(number, blockType):
 	#Chunk Name, followed by encoded name
 	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
-	return name + " " + String.num_int64((number << gridData.packSize) + blockType)
+	return name + " " + String.num_int64((number << gridData.packedData.packSize) + blockType)
 
 func _makeRenderPolygon(recti, texture):
 	var rect = _rectiToRect(recti);

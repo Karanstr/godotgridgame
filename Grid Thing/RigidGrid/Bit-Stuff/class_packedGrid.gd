@@ -1,25 +1,14 @@
 class_name packedGrid extends Util
 
-var data:Array[int] = []
+var packedData:packedArray;
 var gridDims:Vector2i;
 var typeCount:int;
 var binArrays:Array = [];
-var totalPacks:int;
-var packSize:int;
-var packMask:int;
-var packsPerBox:int;
-var totalBoxes:int;
 
 func _init(dimensions:Vector2i, uniqueBlocks:int):
 	if dimensions.x > 64 || dimensions.y > 64:
 		push_error("packedGrid cannot support dimensions larger than 64, if something is broken this is probably why")
-	totalPacks = dimensions.x * dimensions.y;
-	packSize = Util.bitsToStore(uniqueBlocks); 
-	packMask = 2**packSize - 1;
-	packsPerBox = boxSize/packSize
-	totalBoxes = ceili(float(totalPacks)/packsPerBox);
-	for box in totalBoxes:
-		data.push_back(0);
+	packedData = packedArray.new(dimensions.x * dimensions.y, Util.bitsToStore(uniqueBlocks));
 	gridDims = dimensions
 	typeCount = uniqueBlocks
 	for type in typeCount: 
@@ -28,20 +17,20 @@ func _init(dimensions:Vector2i, uniqueBlocks:int):
 
 #Use instead of super.readIndex
 func read(index):
-	var position = getPosition(index, packSize, packsPerBox);
-	return [rightShift(data[position.x], position.y) & genMask(packSize, 1, 1), position]
+	var position = getPosition(index, packedData.packSize, packedData.packsPerBox);
+	return [rightShift(packedData.array[position.x], position.y) & genMask(packedData.packSize, 1, 1), position]
 
 #Use instead of super.modifyIndex
 func modify(index:int, newVal:int):
-	if (Util.bitsToStore(newVal) > packSize):
+	if (Util.bitsToStore(newVal) > packedData.packSize):
 		print("Value exceeds packing size: " + String.num_int64(newVal))
 		return false
-	if (index >= totalPacks):
+	if (index >= packedData.totalPacks):
 		print("Cannot access index " + String.num_int64(index))
 		return false
 	var oldVal = read(index)
-	var pos = getPosition(index, packSize, packsPerBox)
-	data[oldVal[1].x] += leftShift(newVal - oldVal[0], oldVal[1].y)
+	var pos = getPosition(index, packedData.packSize, packedData.packsPerBox)
+	packedData.array[oldVal[1].x] += leftShift(newVal - oldVal[0], oldVal[1].y)
 	var coords = decode(index, gridDims.x)
 	var mask = 1 << coords.x
 	binArrays[newVal][coords.y] |= mask
@@ -53,12 +42,12 @@ func rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
 	for block in matchedValues.size():
 		rows.push_back(0)
 	var index:int = gridDims.x*rowNum;
-	var rowData:Array[int] = readSection(data, gridDims.x, index, packSize, packsPerBox);
+	var rowData:Array[int] = readSection(packedData.array, gridDims.x, index, packedData.packSize, packedData.packsPerBox);
 	var packCounter:int = 0;
 	for i in gridDims.x:
-		var dataBox:int = packCounter/packsPerBox;
-		var val:int = rowData[dataBox] & packMask;
-		rowData[dataBox] = rightShift(rowData[dataBox], packSize);
+		var dataBox:int = packCounter/packedData.packsPerBox;
+		var val:int = rowData[dataBox] & packedData.packMask;
+		rowData[dataBox] = rightShift(rowData[dataBox], packedData.packSize);
 		for block in matchedValues.size():
 			if (matchedValues[block] == val):
 				rows[block] += 1 << (packCounter % boxSize);
