@@ -39,7 +39,7 @@ func _process(_delta):
 				updateChunk([oldVal, newVal])
 				var groups = Util.findGroups(gridData.mergeStrings(blocks.solidBlocks.keys()), gridDims)
 				print(groups.size())
-			elif Input.is_action_just_released("click"): lastEditKey = -1
+		elif Input.is_action_just_released("click"): lastEditKey = -1
 
 func updateChunk(changedVals:Array[int]):
 	for change in changedVals: #Remove Old Boxes
