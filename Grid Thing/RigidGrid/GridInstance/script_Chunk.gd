@@ -20,8 +20,8 @@ func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:V
 	gridDims = gridDimensions
 	chunkDims = chunkDimensions
 	blockDims = chunkDims/Vector2(gridDims)
-	gridData = packedGrid.new(gridDims, blocks.array.size())
-	for block in blockTypes.array.size():
+	gridData = packedGrid.new(gridDims, blocks)
+	for block in blocks.array.size():
 		pointMasses.push_back([])
 		cachedRects.push_back([])
 	cachedRects[0] = Util.greedyRect(gridData.binArrays[0])
@@ -37,7 +37,7 @@ func _process(_delta):
 				var newVal:int = 1 if oldVal == 0 else 0;
 				gridData.modify(key, newVal)
 				updateChunk([oldVal, newVal])
-				var groups = Util.findGroups(gridData.mergeStrings(blocks.solidBlocks.keys()), gridDims)
+				var groups = gridData.identifySubGroups()
 				print(groups.size())
 		elif Input.is_action_just_released("click"): lastEditKey = -1
 

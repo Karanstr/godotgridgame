@@ -2,22 +2,22 @@ class_name packedGrid extends Util
 
 var packedData:fixedPackedArray;
 var gridDims:Vector2i;
-var typeCount:int;
+var blockTypes:BlockTypes;
 var binArrays:Array = [];
 
-func _init(dimensions:Vector2i, uniqueBlocks:int):
+func _init(dimensions:Vector2i, gridBlockTypes:BlockTypes):
 	if dimensions.x > 64 || dimensions.y > 64:
 		push_error("packedGrid cannot support dimensions larger than 64, if something is broken this is probably why")
-	packedData = fixedPackedArray.new(dimensions.x * dimensions.y, Util.bitsToStore(uniqueBlocks));
 	gridDims = dimensions
-	typeCount = uniqueBlocks
-	for type in typeCount: 
+	blockTypes = gridBlockTypes
+	packedData = fixedPackedArray.new(dimensions.x * dimensions.y, Util.bitsToStore(blockTypes.array.size()));
+	for type in blockTypes.array.size(): 
 		binArrays.push_back([])
 	recacheBinaryStrings()
 
 #Use instead of super.readIndex
 func read(index):
-	var position = getPosition(index, packedData.packSize, packedData.packsPerBox);
+	var position = getPosition(index, packedData.packSize);
 	return [rightShift(packedData.array[position.x], position.y) & genMask(packedData.packSize, 1, 1), position]
 
 #Use instead of super.modifyIndex
@@ -41,7 +41,7 @@ func rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
 	for block in matchedValues.size():
 		rows.push_back(0)
 	var index:int = gridDims.x*rowNum;
-	var rowData:Array[int] = readSection(packedData.array, gridDims.x, index, packedData.packSize, packedData.packsPerBox);
+	var rowData:Array[int] = readSection(packedData.array, gridDims.x, index, packedData.packSize);
 	var packCounter:int = 0;
 	for i in gridDims.x:
 		var dataBox:int = packCounter/packedData.packsPerBox;
@@ -65,14 +65,17 @@ func recacheBinaryStrings():
 	var newBinaryStrings:Array = [];
 	var tempArrays:Array = [];
 	var allBlocks:Array[int] = [];
-	for block in typeCount:
+	for block in blockTypes.array.size():
 		allBlocks.push_back(block);
 	for row in gridDims.y: 
 		tempArrays.push_back(rowToInt(row, allBlocks));
-	for block in typeCount:
+	for block in blockTypes.array.size():
 		newBinaryStrings.push_back([]);
 		for row in gridDims.y:
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays = newBinaryStrings
 
+func identifySubGroups():
+	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())
+	return Util.findGroups(mergedBinArray, gridDims);
 #

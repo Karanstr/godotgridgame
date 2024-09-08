@@ -206,26 +206,28 @@ static func unpackArray(packedArray:fixedPackedArray):
 
 	return unpackedArray
 
-static func reSizePackedArray(packedArray:fixedPackedArray):
+static func resizePackedArray(_packedArray:fixedPackedArray, _newPackSize:int):
 	pass
 
-static func getPosition(index, packSize:int = 1, packsPerBox:int = boxSize/packSize):
+static func getPosition(index, packSize:int = 1):
+	var packsPerBox:int = boxSize/packSize
 	var boxNum = index/packsPerBox
 	var padding = (index - boxNum*packsPerBox)*packSize
 	return Vector2i(boxNum, padding)
 
 #Returns [value, position]
-static func readIndex(section:Array[int], index:int, packSize:int, packsPerBox:int = boxSize/packSize):
-	var position = getPosition(index, packsPerBox, packSize);
+static func readIndex(section:Array[int], index:int, packSize:int):
+	var position = getPosition(index, packSize);
 	return [rightShift(section[position.x], position.y) & genMask(packSize, 1, 1), position]
 
 #returns oldValue
-static func modifyIndex(array:Array[int], index:int, newVal:int, packSize:int = 1, packsPerBox:int = boxSize/packSize):
-	var oldValue:Array = readIndex(array, index, packSize, packsPerBox);
+static func modifyIndex(array:Array[int], index:int, newVal:int, packSize:int = 1):
+	var oldValue:Array = readIndex(array, index, packSize);
 	array[oldValue[1].x] += Util.leftShift(newVal - oldValue[0], oldValue[1].y)
 	return oldValue[0]
 
-static func readSection(array:Array[int], packs:int, startIndex:int = 0, packSize:int = 1, packsPerBox:int = boxSize/packSize):
+static func readSection(array:Array[int], packs:int, startIndex:int, packSize:int = 1):
+	var packsPerBox:int = boxSize/packSize
 	var packMask = genMask(packSize, 1, 1)
 	var section:Array[int] = [];
 	var curPos = getPosition(startIndex, packSize)
@@ -242,7 +244,7 @@ static func readSection(array:Array[int], packs:int, startIndex:int = 0, packSiz
 		remPacksInCurBox = boxSize - packsInNextBox;
 	return section
 
-static func modifySection(array:int):
+static func modifySection(arrayToModify:Array[int], sectionToInsert:Array[int], ):
 	pass
 
 #endregion

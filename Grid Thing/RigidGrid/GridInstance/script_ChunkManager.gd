@@ -11,11 +11,11 @@ func _ready():
 	defineBlocks(blockTypes)
 	addNewChunk(Vector2i(0,0), blockTypes)
 
-func addNewChunk(_chunkLocation:Vector2i, blockTypesO):
+func addNewChunk(_chunkLocation:Vector2i, object_BlockTypes):
 	var newChunk:Node2D = Node2D.new();
 	newChunk.set_script(chunkScript);
 	newChunk.name = "0";
-	newChunk.initialize(Vector2(64, 64), blockTypesO, Vector2i(8,8));
+	newChunk.initialize(Vector2(64, 64), object_BlockTypes, Vector2i(8,8));
 	add_child(newChunk)
 
 func removeChunk(chunkName:String):
