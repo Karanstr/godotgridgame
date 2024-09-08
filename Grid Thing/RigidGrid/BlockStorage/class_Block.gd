@@ -5,13 +5,8 @@ var texture;
 var collision:bool;
 var weight:int
 
-#Constructor
-static func create(blockName:String, image, doesCollide:bool, weight:int = 0) -> Block:
-	var block:Block = Block.new();
-	
-	block.name = blockName;
-	block.texture = image;
-	block.collision = doesCollide;
-	block.weight = weight;
-	
-	return block
+func _init(blockName:String, image, doesCollide:bool, blockWeight:int = 0):
+	name = blockName;
+	texture = image;
+	collision = doesCollide;
+	weight = blockWeight

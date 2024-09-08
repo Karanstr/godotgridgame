@@ -15,7 +15,7 @@ var cachedRects:Array = [];
 
 var lastEditKey:int = -1;
 
-func init(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
+func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	blocks = blockTypes
 	gridDims = gridDimensions
 	chunkDims = chunkDimensions

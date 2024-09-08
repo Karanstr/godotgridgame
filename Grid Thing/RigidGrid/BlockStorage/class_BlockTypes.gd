@@ -2,15 +2,9 @@ class_name BlockTypes
 
 var array: Array[Block];
 var solidBlocks:Dictionary = {}
-#var map: Dictionary;
-
-#Constructor
-static func create() -> BlockTypes:
-	var newBlockTypes:BlockTypes = BlockTypes.new()
-	return newBlockTypes 
 
 func addNewBlock(name:String, texture, doesCollide:bool, weight:int = 0):
-	var newBlock:Block = Block.create(name, texture, doesCollide, weight)
+	var newBlock:Block = Block.new(name, texture, doesCollide, weight)
 	array.push_back(newBlock)
 	if doesCollide: solidBlocks.get_or_add(array.size()-1)
 	return array.size()-1 #Index of new block

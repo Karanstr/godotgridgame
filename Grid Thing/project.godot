@@ -11,11 +11,12 @@ config_version=5
 [application]
 
 config/name="Grid Thing"
-run/main_scene="res://MAIN.scn"
+run/main_scene="res://Main.scn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [debug]
 
+gdscript/warnings/incompatible_ternary=0
 gdscript/warnings/integer_division=0
 
 [display]
