@@ -1,15 +1,11 @@
 extends Node2D
 
 const chunkScript = preload("./script_Chunk.gd")
-var blockTypes:BlockTypes = BlockTypes.new();
-
-func defineBlocks(object_BlockTypes):
-	object_BlockTypes.addNewBlock("green", preload("res://RigidGrid/Textures/green.png"), false)
-	object_BlockTypes.addNewBlock("red", preload("res://RigidGrid/Textures/red.png"), true, 1)
+var manager; #Const
 
 func _ready():
-	defineBlocks(blockTypes)
-	addNewChunk(Vector2i(0,0), blockTypes)
+	manager = get_node("../../")
+	addNewChunk(Vector2i(0,0), manager.blockTypes)
 
 func addNewChunk(_chunkLocation:Vector2i, object_BlockTypes):
 	var newChunk:Node2D = Node2D.new();
