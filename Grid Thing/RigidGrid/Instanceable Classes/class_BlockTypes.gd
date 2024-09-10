@@ -11,15 +11,17 @@ class Block:
 		collision = doesCollide;
 		weight = blockWeight
 
-var array: Array[Block];
+var blocks:Dictionary = {}
 var solidBlocks:Dictionary = {}
+#var blockCount:int = 0;
+var maxBlockIndex = 0;
 
 func _init():
-	addNewBlock("green", preload("res://RigidGrid/Textures/green.png"), false)
-	addNewBlock("red", preload("res://RigidGrid/Textures/red.png"), true, 1)
+	addNewBlock(1, "green", preload("res://RigidGrid/Textures/green.png"), false)
+	addNewBlock(2, "red", preload("res://RigidGrid/Textures/red.png"), true, 1)
 
-func addNewBlock(name:String, texture, doesCollide:bool, weight:int = 0):
+func addNewBlock(index:int, name:String, texture, doesCollide:bool, weight:int = 0):
 	var newBlock:Block = Block.new(name, texture, doesCollide, weight)
-	array.push_back(newBlock)
-	if doesCollide: solidBlocks.get_or_add(array.size()-1)
-	return array.size()-1 #Index of new block
+	blocks.get_or_add(index, newBlock)
+	if doesCollide: solidBlocks.get_or_add(index)
+	if (index > maxBlockIndex): maxBlockIndex = index

@@ -9,39 +9,39 @@ var boxesPerRow:int;
 var blockMask:int;
 
 var blockTypes:BlockTypes;
-var binArrays:Array = [];
+var binArrays:Dictionary = {};
 
 func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataToWrite:Array):
 	if blocksPerRow > Util.boxSize:
 		push_error("packedGrid cannot support row lengths longer than " + String.num_int64(Util.boxSize) + ", if something is broken this is probably why")
 	blockTypes = gridBlockTypes
 	
-	bitsPerBlock = Util.bitsToStore(blockTypes.array.size())
+	bitsPerBlock = Util.bitsToStore(blockTypes.maxBlockIndex+1)
 	blocksPerBox = Util.boxSize/bitsPerBlock
 	blocksPerRow = blocksInRow
-	boxesPerRow = ceili(float(blocksInRow)/blocksPerBox)
-	blockMask = Util.genMask(bitsPerBlock, 1, 1)
+	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
+	blockMask = Util.genMask(1, bitsPerBlock, 1)
 	
 	for row in rowCount:
 		var packedRow:Array[int] = [];
-		for block in blocksPerRow:
+		for block in boxesPerRow:
 			packedRow.push_back(0)
-		rows.push_back(packedRow) 	
+		rows.push_back(packedRow) 
 	
-	for type in blockTypes.array.size():
-		binArrays.push_back([])
+	for block in blockTypes.blocks.keys():
+		binArrays.get_or_add(block, [])
 	
 	recacheBinaryStrings()
 
 func accessCell(cell:Vector2i, modify:int = 0):
-	var data = rows[cell.y];
 	var pos = Util.getPosition(cell.x, bitsPerBlock);
-	var curVal = Util.rightShift(data[pos.box], pos.shift) & blockMask
+	var curVal = Util.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
 	if (modify != 0):
-		data[pos.box] += Util.leftShift(modify - curVal, pos.shift)
+		rows[cell.y][pos.box] += Util.leftShift(modify - curVal, pos.shift)
 		var bitMask = 1 << cell.x
 		binArrays[modify][cell.y] |= bitMask
-		binArrays[curVal][cell.y] &= ~bitMask
+		if (curVal != 0):
+			binArrays[curVal][cell.y] &= ~bitMask
 	return curVal
 
 func rowToInt(rowNum:int, matchedValues:Dictionary) -> Dictionary:
@@ -71,18 +71,15 @@ func mergeStrings(values:Array):
 	return binaryArray
 
 func recacheBinaryStrings():
-	var newBinaryStrings:Array = [];
+	var newBinaryStrings:Dictionary = {};
 	var tempArrays:Array = [];
-	var allBlocks:Dictionary = {};
-	for block in blockTypes.array.size():
-		allBlocks.get_or_add(block);
-		newBinaryStrings.push_back([]);
 	for row in rows.size(): 
-		tempArrays.push_back(rowToInt(row, allBlocks));
-	for block in blockTypes.array.size():
+		tempArrays.push_back(rowToInt(row, blockTypes.blocks));
+	for block in blockTypes.blocks:
+		newBinaryStrings.get_or_add(block, []);
 		for row in rows.size():
 			newBinaryStrings[block].push_back(tempArrays[row][block])
-	binArrays = newBinaryStrings
+	binArrays.merge(newBinaryStrings, true)
 
 func identifySubGroups():
 	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())

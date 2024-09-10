@@ -8,7 +8,7 @@ static func createChunk(name:String):
 	var chunk:Node2D = Node2D.new();
 	chunk.set_script(chunkScript);
 	var chunkSize:Vector2 = Vector2(64, 64) #Units
-	var gridSize:Vector2i = Vector2i(8,8) #Cells
+	var gridSize:Vector2i = Vector2i(2,2) #Cells
 	chunk.name = name;
 	chunk.initialize(chunkSize, blockArray, gridSize);
 	return chunk

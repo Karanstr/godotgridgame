@@ -10,10 +10,10 @@ var chunkDims:Vector2;
 var chunkCOM:Vector2;
 var chunkMass:int = 0;
 
-var pointMasses:Array = [];
-var cachedRects:Array = [];
+var pointMasses:Dictionary = {};
+var cachedRects:Dictionary = {};
 
-var lastEditKey:int = -1;
+var lastEditKey:Vector2i = Vector2i(-1, -1);
 
 func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
 	blocks = blockTypes
@@ -21,26 +21,28 @@ func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:V
 	chunkDims = chunkDimensions
 	blockDims = chunkDims/Vector2(gridDims)
 	gridData = packedGrid.new(gridDims.y, gridDims.x, blocks, [])
-	for block in blocks.array.size():
-		pointMasses.push_back([])
-		cachedRects.push_back([])
-	cachedRects[0] = Util.greedyRect(gridData.binArrays[0])
-	_addRenderBoxes(0)
+	for block in blocks.blocks.keys():
+		pointMasses.get_or_add(block, [])
+		cachedRects.get_or_add(block, [])
 
 func _process(_delta):
 	if (editable):
 		if Input.is_action_pressed("click"):
-			var cell:Vector2i = get_local_mouse_position()/blockDims
-			lastEditKey = Util.cellToKey(cell, gridData.blocksPerRow)
-			var oldVal:int = gridData.accessCell(cell)
-			var newVal:int = 1 if oldVal == 0 else 0;
-			gridData.accessCell(cell, newVal)
-			updateChunk([oldVal, newVal])
-			var groups = gridData.identifySubGroups()
-			print(groups.size())
-		elif Input.is_action_just_released("click"): lastEditKey = -1
+			var cell:Vector2i = pointToCell(get_local_mouse_position())
+			if (cell != lastEditKey && cell != Vector2i(-1, -1)):
+				lastEditKey = cell
+				var oldVal:int = gridData.accessCell(cell)
+				var newVal:int = 2 if oldVal == 1 else 1;
+				gridData.accessCell(cell, newVal)
+				updateChunk({oldVal:null, newVal:null})
+				var groups = gridData.identifySubGroups()
+				#print(groups.size())
+		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
-func updateChunk(changedVals:Array[int]):
+#Don't pass 0 in here, I'll just have to take it out again
+#We do not update 0. 0 isn't real.
+func updateChunk(changedVals:Dictionary):
+	changedVals.erase(0)
 	for change in changedVals: #Remove Old Boxes
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
@@ -50,9 +52,15 @@ func updateChunk(changedVals:Array[int]):
 		_addPhysicsBoxes(change)
 	_updateCOM(changedVals)
 
+func pointToCell(point:Vector2):
+	var cell:Vector2i = point/blockDims
+	if (point.x < 0 || cell.x >= gridDims.x || point.y < 0 || cell.y >= gridDims.y):
+		return Vector2i(-1, -1)
+	return cell
+
 #region Mass Management
 
-func _updateCOM(changedVals:Array[int]):
+func _updateCOM(changedVals:Dictionary):
 	var centerOfMass = Vector2(0,0);
 	var _oldMass:int = chunkMass;
 	chunkMass = 0;
@@ -63,7 +71,6 @@ func _updateCOM(changedVals:Array[int]):
 			chunkMass += point.z
 	centerOfMass /= Vector2(chunkMass, chunkMass)
 	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
-
 	var node = get_node("../")
 	node.updateRigidGrid(centerOfMass, chunkMass)
 	return centerOfMass
@@ -71,7 +78,7 @@ func _updateCOM(changedVals:Array[int]):
 func _reduceToPointMasses(blockType:int):
 	var blockPointMasses:Array = [];
 	for recti in cachedRects[blockType]:
-		var blockWeight = blocks.array[blockType].weight
+		var blockWeight = blocks.blocks[blockType].weight
 		if (blockWeight != 0):
 			blockPointMasses.push_back(_rectToPointMass(recti, blockWeight))
 	return blockPointMasses
@@ -88,7 +95,7 @@ func _rectToPointMass(recti:Rect2i, weightPerBlock:int):
 #region Render&Physics Management
 
 func _addRenderBoxes(blockType):
-	var image = blocks.array[blockType].texture;
+	var image = blocks.blocks[blockType].texture;
 	for rectNum in cachedRects[blockType].size():
 		var rect = cachedRects[blockType][rectNum]
 		var polygon = _makeRenderPolygon(rect, image)
@@ -100,7 +107,7 @@ func _removeRenderBoxes(blockType):
 		get_node(_encodeName(rectNum, blockType)).free()
 
 func _addPhysicsBoxes(blockType:int):
-	if (blocks.array[blockType].collision == true):
+	if (blocks.blocks[blockType].collision == true):
 		for rectNum in cachedRects[blockType].size():
 			var rect = cachedRects[blockType][rectNum]
 			var colBox:CollisionShape2D = _makeColBox(rect);
@@ -108,7 +115,7 @@ func _addPhysicsBoxes(blockType:int):
 			get_node("../../").add_child(colBox)
 
 func _removePhysicsBoxes(blockType:int):
-	if (blocks.array[blockType].collision == true):
+	if (blocks.blocks[blockType].collision == true):
 		for rectNum in cachedRects[blockType].size():
 			get_node("../../" + _encodeName(rectNum, blockType)).free()
 
