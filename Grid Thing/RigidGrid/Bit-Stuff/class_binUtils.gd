@@ -244,8 +244,6 @@ static func readSection(array:Array[int], packs:int, startIndex:int, packSize:in
 		remPacksInCurBox = boxSize - packsInNextBox;
 	return section
 
-static func modifySection(arrayToModify:Array[int], sectionToInsert:Array[int], ):
-	pass
 
 #endregion
 
