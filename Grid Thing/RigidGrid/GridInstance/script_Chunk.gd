@@ -33,7 +33,6 @@ func _process(_delta):
 			var cell:Vector2i = get_local_mouse_position()/blockDims
 			lastEditKey = Util.cellToKey(cell, gridData.blocksPerRow)
 			var oldVal:int = gridData.accessCell(cell)
-			print(oldVal)
 			var newVal:int = 1 if oldVal == 0 else 0;
 			gridData.accessCell(cell, newVal)
 			updateChunk([oldVal, newVal])
