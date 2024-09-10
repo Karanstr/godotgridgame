@@ -20,7 +20,7 @@ func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:V
 	gridDims = gridDimensions
 	chunkDims = chunkDimensions
 	blockDims = chunkDims/Vector2(gridDims)
-	gridData = packedGrid.new(gridDims, blocks)
+	gridData = packedGrid.new(gridDims.y, gridDims.x, blocks, [])
 	for block in blocks.array.size():
 		pointMasses.push_back([])
 		cachedRects.push_back([])
@@ -30,15 +30,15 @@ func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:V
 func _process(_delta):
 	if (editable):
 		if Input.is_action_pressed("click"):
-			var key:int = pointToKey(get_local_mouse_position())[0]
-			if key != -1 && key != lastEditKey:
-				lastEditKey = key
-				var oldVal:int = gridData.read(key)[0]
-				var newVal:int = 1 if oldVal == 0 else 0;
-				gridData.modify(key, newVal)
-				updateChunk([oldVal, newVal])
-				var groups = gridData.identifySubGroups()
-				print(groups.size())
+			var cell:Vector2i = get_local_mouse_position()/blockDims
+			lastEditKey = Util.cellToKey(cell, gridData.blocksPerRow)
+			var oldVal:int = gridData.accessCell(cell)
+			print(oldVal)
+			var newVal:int = 1 if oldVal == 0 else 0;
+			gridData.accessCell(cell, newVal)
+			updateChunk([oldVal, newVal])
+			var groups = gridData.identifySubGroups()
+			print(groups.size())
 		elif Input.is_action_just_released("click"): lastEditKey = -1
 
 func updateChunk(changedVals:Array[int]):
@@ -50,22 +50,6 @@ func updateChunk(changedVals:Array[int]):
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
 	_updateCOM(changedVals)
-
-#region Stuff Unsorted
-
-func pointToKey(point:Vector2) -> Array[int]:
-	var offset:Vector2 = Vector2(.01,.01)
-	var keys:Array[int] = [];
-	for x in range(0, 2):
-		for y in range(0, 2):
-			var woint:Vector2 = offset - 2*offset*Vector2(x,y) + point
-			if woint.x > 0 && woint.x < chunkDims.x && woint.y > 0 && woint.y < chunkDims.y:
-				keys.append(Util.encode(woint/blockDims, gridDims.x))
-			else:
-				keys.append(-1)
-	return keys
-
-#endregion
 
 #region Mass Management
 
@@ -132,7 +116,7 @@ func _removePhysicsBoxes(blockType:int):
 func _encodeName(number, blockType):
 	#Chunk Name, followed by encoded name
 	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
-	return name + " " + String.num_int64((number << gridData.packedData.packSize) + blockType)
+	return name + " " + String.num_int64((number << gridData.bitsPerBlock) + blockType)
 
 func _makeRenderPolygon(recti, texture):
 	var rect = _rectiToRect(recti);

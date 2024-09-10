@@ -1,61 +1,70 @@
-class_name packedGrid extends Util
+class_name packedGrid #Rename this class
 
-var packedData:fixedPackedArray;
-var gridDims:Vector2i;
+var rows:Array = [];
+var blocksPerRow:int;
+
+var bitsPerBlock:int;
+var blocksPerBox:int;
+var boxesPerRow:int;
+var blockMask:int;
+
 var blockTypes:BlockTypes;
 var binArrays:Array = [];
 
-func _init(dimensions:Vector2i, gridBlockTypes:BlockTypes):
-	if dimensions.x > 64 || dimensions.y > 64:
-		push_error("packedGrid cannot support dimensions larger than 64, if something is broken this is probably why")
-	gridDims = dimensions
+func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataToWrite:Array):
+	if blocksPerRow > Util.boxSize:
+		push_error("packedGrid cannot support row lengths longer than " + String.num_int64(Util.boxSize) + ", if something is broken this is probably why")
 	blockTypes = gridBlockTypes
-	packedData = fixedPackedArray.new(dimensions.x * dimensions.y, Util.bitsToStore(blockTypes.array.size()));
-	for type in blockTypes.array.size(): 
+	
+	bitsPerBlock = Util.bitsToStore(blockTypes.array.size())
+	blocksPerBox = Util.boxSize/bitsPerBlock
+	blocksPerRow = blocksInRow
+	boxesPerRow = ceili(float(blocksInRow)/blocksPerBox)
+	blockMask = Util.genMask(bitsPerBlock, 1, 1)
+	
+	for row in rowCount:
+		var packedRow:Array[int] = [];
+		for block in blocksPerRow:
+			packedRow.push_back(0)
+		rows.push_back(packedRow) 	
+	
+	for type in blockTypes.array.size():
 		binArrays.push_back([])
+	
 	recacheBinaryStrings()
 
-#Use instead of super.readIndex
-func read(index):
-	var position = getPosition(index, packedData.packSize);
-	return [rightShift(packedData.array[position.x], position.y) & genMask(packedData.packSize, 1, 1), position]
+func accessCell(cell:Vector2i, modify:int = 0):
+	var data = rows[cell.y];
+	var pos = Util.getPosition(cell.x, bitsPerBlock);
+	var curVal = Util.rightShift(data[pos.box], pos.shift) & blockMask
+	if (modify != 0):
+		data[pos.box] += Util.leftShift(modify - curVal, pos.shift)
+		var bitMask = 1 << cell.x
+		binArrays[modify][cell.y] |= bitMask
+		binArrays[curVal][cell.y] &= ~bitMask
+	return curVal
 
-#Use instead of super.modifyIndex
-func modify(index:int, newVal:int):
-	if (Util.bitsToStore(newVal) > packedData.packSize):
-		print("Value exceeds packing size: " + String.num_int64(newVal))
-		return false
-	if (index >= packedData.totalPacks):
-		print("Cannot access index " + String.num_int64(index))
-		return false
-	var oldVal = read(index)
-	packedData.array[oldVal[1].x] += leftShift(newVal - oldVal[0], oldVal[1].y)
-	var coords = decode(index, gridDims.x)
-	var mask = 1 << coords.x
-	binArrays[newVal][coords.y] |= mask
-	binArrays[oldVal[0]][coords.y] &= ~mask
-	return oldVal[0]
-
-func rowToInt(rowNum:int, matchedValues:Array[int]) -> Array[int]:
-	var rows:Array[int] = [];
-	for block in matchedValues.size():
-		rows.push_back(0)
-	var index:int = gridDims.x*rowNum;
-	var rowData:Array[int] = readSection(packedData.array, gridDims.x, index, packedData.packSize);
-	var packCounter:int = 0;
-	for i in gridDims.x:
-		var dataBox:int = packCounter/packedData.packsPerBox;
-		var val:int = rowData[dataBox] & packedData.packMask;
-		rowData[dataBox] = rightShift(rowData[dataBox], packedData.packSize);
-		for block in matchedValues.size():
-			if (matchedValues[block] == val):
-				rows[block] += 1 << (packCounter % boxSize);
-		packCounter += 1;
-	return rows
+func rowToInt(rowNum:int, matchedValues:Dictionary) -> Dictionary:
+	var bitRows:Dictionary = {}
+	for block in matchedValues.keys(): bitRows.get_or_add(block, 0)
+	var curPack:int = 0
+	var curBox:int = 0
+	var curMask = 1
+	var row = rows[rowNum].duplicate()
+	for block in blocksPerRow:
+		var val:int = row[curBox] & blockMask
+		row[curBox] = Util.rightShift(row[curBox], bitsPerBlock)
+		if matchedValues.has(val): bitRows[val] |= curMask
+		curPack += 1
+		if (curPack == blocksPerBox):
+			curPack = 0
+			curBox += 1
+		if (curMask > 0): curMask <<= 1
+	return bitRows
 
 func mergeStrings(values:Array):
 	var binaryArray:Array[int] = [];
-	for row in gridDims.y:
+	for row in rows.size():
 		binaryArray.push_back(0)
 		for value in values: #Combine BStrings into single string per row
 			binaryArray[row] |= binArrays[value][row]
@@ -64,18 +73,18 @@ func mergeStrings(values:Array):
 func recacheBinaryStrings():
 	var newBinaryStrings:Array = [];
 	var tempArrays:Array = [];
-	var allBlocks:Array[int] = [];
+	var allBlocks:Dictionary = {};
 	for block in blockTypes.array.size():
-		allBlocks.push_back(block);
-	for row in gridDims.y: 
+		allBlocks.get_or_add(block);
+		newBinaryStrings.push_back([]);
+	for row in rows.size(): 
 		tempArrays.push_back(rowToInt(row, allBlocks));
 	for block in blockTypes.array.size():
-		newBinaryStrings.push_back([]);
-		for row in gridDims.y:
+		for row in rows.size():
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays = newBinaryStrings
 
 func identifySubGroups():
 	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())
-	return Util.findGroups(mergedBinArray, gridDims);
+	return Util.findGroups(mergedBinArray, rows.size());
 #

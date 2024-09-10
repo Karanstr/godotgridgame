@@ -4,8 +4,6 @@ static var blockArray:BlockTypes = BlockTypes.new();
 
 const chunkScript = preload("../GridInstance/script_Chunk.gd")
 
-
-
 static func createChunk(name:String):
 	var chunk:Node2D = Node2D.new();
 	chunk.set_script(chunkScript);
