@@ -2,7 +2,7 @@ class_name GridFactory
 
 static var blockArray:BlockTypes = BlockTypes.new();
 
-const chunkScript = preload("./GridInstance/script_Chunk.gd")
+const chunkScript = preload("../GridInstance/script_Chunk.gd")
 
 
 
