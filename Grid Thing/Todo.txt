@@ -1,13 +1,15 @@
 Todo
 	- Technical Things
-	- - Implement mass-updating of the grid (without just calling modify a bunch?)
-	- - Object detection (bc non attached objects shouldn't be attached)
-	- - - Allow objects to split when they are no longer attached
+	- - Object detection
+	- - -/ Detect distinct (non touching) objects on adjacent faces
+	- - - Split objects when they are distinct
+	- - - -/ Refactor entire grid system to simplify loading/saving process
+	- - - - Actually load/save data now that it's easy
 	- - Add (two?) bits of info for everything to specify if it has special data
-	- - One bit for special data, one bit for whether that special data affects it visually
-	- - Way to store/recall special data
-	- - Don't greedy mesh objects with visually distinct special data
-	- - Potentially clean up chaining with signals?
+	- -  - One bit for special data, one bit for whether that special data affects it visually
+	- - - Don't greedy mesh objects with visually distinct special data
+	- - - Way to store/recall special data
+	- - Implement mass-updating of the grid (without just calling modify a bunch?)
 	- - Allow for different collision shapes/meshes
 	
 	- Implement multi chunk(64x64 blocks) objects
@@ -16,11 +18,10 @@ Todo
 	- - Broadcast old and new mass of a chunk to chunkmanager for more efficient mass updates
 	
 	- Clean up/optimise collision meshing 
-	- - Mesh culling to minimize collision objects in scene at once (2d Occlusion culling)
+	- - Mesh culling to minimize collision objects in scene at once (2d Occlusion cullingish)
 	
 	- Grid
 	- - Raystepping between mouse prior and current positions to prevent skipping while dragging? 
-	- - Add saving and loading of grid
 	
 	- Other Collision Stuff
 	- - Figure out sleeping issue when updating collision boxes

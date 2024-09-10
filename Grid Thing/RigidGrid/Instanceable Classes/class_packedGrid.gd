@@ -1,7 +1,7 @@
-class_name packedGrid #Rename this class
+class_name packedGrid
 
-var rows:Array = [];
-var blocksPerRow:int;
+var rows:Array = []; #rows.size() == dim.y/columns
+var blocksPerRow:int; #Dim.x
 
 var bitsPerBlock:int;
 var blocksPerBox:int;
@@ -33,7 +33,7 @@ func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataTo
 	
 	recacheBinaryStrings()
 
-func accessCell(cell:Vector2i, modify:int = 0):
+func accessCell(cell:Vector2i, modify:int = 0) -> int:
 	var pos = Util.getPosition(cell.x, bitsPerBlock);
 	var curVal = Util.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
 	if (modify != 0):
@@ -62,7 +62,7 @@ func rowToInt(rowNum:int, matchedValues:Dictionary) -> Dictionary:
 		if (curMask > 0): curMask <<= 1
 	return bitRows
 
-func mergeStrings(values:Array):
+func mergeStrings(values:Array) -> Array[int]:
 	var binaryArray:Array[int] = [];
 	for row in rows.size():
 		binaryArray.push_back(0)
@@ -70,7 +70,7 @@ func mergeStrings(values:Array):
 			binaryArray[row] |= binArrays[value][row]
 	return binaryArray
 
-func recacheBinaryStrings():
+func recacheBinaryStrings() -> void:
 	var newBinaryStrings:Dictionary = {};
 	var tempArrays:Array = [];
 	for row in rows.size(): 
@@ -81,7 +81,7 @@ func recacheBinaryStrings():
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays.merge(newBinaryStrings, true)
 
-func identifySubGroups():
+func identifySubGroups() -> Array:
 	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())
 	return Util.findGroups(mergedBinArray, rows.size());
 #

@@ -52,7 +52,7 @@ func updateChunk(changedVals:Dictionary):
 		_addPhysicsBoxes(change)
 	_updateCOM(changedVals)
 
-func pointToCell(point:Vector2):
+func pointToCell(point:Vector2) -> Vector2i:
 	var cell:Vector2i = point/blockDims
 	if (point.x < 0 || cell.x >= gridDims.x || point.y < 0 || cell.y >= gridDims.y):
 		return Vector2i(-1, -1)
@@ -119,12 +119,12 @@ func _removePhysicsBoxes(blockType:int):
 		for rectNum in cachedRects[blockType].size():
 			get_node("../../" + _encodeName(rectNum, blockType)).free()
 
-func _encodeName(number, blockType):
+func _encodeName(number, blockType) -> String:
 	#Chunk Name, followed by encoded name
 	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
 	return name + " " + String.num_int64((number << gridData.bitsPerBlock) + blockType)
 
-func _makeRenderPolygon(recti, texture):
+func _makeRenderPolygon(recti, texture) -> Polygon2D:
 	var rect = _rectiToRect(recti);
 	var data:PackedVector2Array = PackedVector2Array();
 	data.push_back(rect.position);
@@ -137,7 +137,7 @@ func _makeRenderPolygon(recti, texture):
 	polygon.texture_scale = texture.get_size()/blockDims
 	return polygon
 
-func _makeColBox(recti:Rect2i):
+func _makeColBox(recti:Rect2i) -> CollisionShape2D:
 	var rect = _rectiToRect(recti);
 	var colShape = CollisionShape2D.new();
 	colShape.shape = RectangleShape2D.new();
@@ -145,7 +145,7 @@ func _makeColBox(recti:Rect2i):
 	colShape.shape.size = rect.size;
 	return colShape
 
-func _rectiToRect(recti:Rect2i):
+func _rectiToRect(recti:Rect2i) -> Rect2:
 	var rect:Rect2 = Rect2(recti)
 	rect.position *= blockDims
 	rect.size *= blockDims
