@@ -1,4 +1,4 @@
 # godotgridgame
-We commiting from the terminal now :sunglasses: /n
-And it's actually working no /n
+We commiting from the terminal now :sunglasses: __
+And it's actually working now__
 Uh oh
