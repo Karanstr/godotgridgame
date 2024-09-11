@@ -8,15 +8,13 @@ var blocksPerBox:int;
 var boxesPerRow:int;
 var blockMask:int;
 
-var blockTypes:BlockTypes;
 var binArrays:Dictionary = {};
 
-func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataToWrite:Array):
+func _init(rowCount:int, blocksInRow:int, _gridDataToWrite:Array):
 	if blocksPerRow > BinUtil.boxSize:
 		push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
-	blockTypes = gridBlockTypes
 	
-	bitsPerBlock = BinUtil.bitsToStore(blockTypes.maxBlockIndex+1)
+	bitsPerBlock = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1)
 	blocksPerBox = BinUtil.boxSize/bitsPerBlock
 	blocksPerRow = blocksInRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
@@ -28,7 +26,7 @@ func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataTo
 			packedRow.push_back(0)
 		rows.push_back(packedRow) 
 	
-	for block in blockTypes.blocks.keys():
+	for block in BlockTypes.blocks.keys():
 		binArrays.get_or_add(block, [])
 	
 	recacheBinaryStrings()
@@ -74,15 +72,15 @@ func recacheBinaryStrings() -> void:
 	var newBinaryStrings:Dictionary = {};
 	var tempArrays:Array = [];
 	for row in rows.size(): 
-		tempArrays.push_back(rowToInt(row, blockTypes.blocks));
-	for block in blockTypes.blocks:
+		tempArrays.push_back(rowToInt(row, BlockTypes.blocks));
+	for block in BlockTypes.blocks:
 		newBinaryStrings.get_or_add(block, []);
 		for row in rows.size():
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays.merge(newBinaryStrings, true)
 
 func identifySubGroups():
-	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())
+	var mergedBinArray = mergeStrings(BlockTypes.solidBlocks.keys())
 	var groups:Array = BinUtil.findGroups(mergedBinArray, rows.size())
 	for group in groups:
 		pass

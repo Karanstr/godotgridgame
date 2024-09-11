@@ -1,7 +1,5 @@
 class_name GridFactory
 
-static var blockArray:BlockTypes = BlockTypes.new();
-
 const chunkScript = preload("../GridInstance/script_Chunk.gd")
 
 static func createChunk(name:String):
@@ -10,7 +8,7 @@ static func createChunk(name:String):
 	var blockSize:Vector2 = Vector2(8, 8) #Units
 	var gridSize:Vector2i = Vector2i(2,2) #Cells
 	chunk.name = name;
-	chunk.initialize(blockArray, blockSize, gridSize);
+	chunk.initialize(blockSize, gridSize);
 	return chunk
 
 static func formatGrid(_data):

@@ -1,6 +1,5 @@
 extends Node2D
 
-var blocks:BlockTypes;
 @export var editable:bool = true;
 
 var gridData:packedGrid;
@@ -14,12 +13,11 @@ var cachedRects:Dictionary = {};
 
 var lastEditKey:Vector2i = Vector2i(-1, -1);
 
-func initialize(blockTypes:BlockTypes, blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
-	blocks = blockTypes
+func initialize(blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
 	gridDims = gridDimensions
 	blockDims = blockDimensions
-	gridData = packedGrid.new(gridDims.y, gridDims.x, blocks, [])
-	for block in blocks.blocks.keys():
+	gridData = packedGrid.new(gridDims.y, gridDims.x, [])
+	for block in BlockTypes.blocks.keys():
 		pointMasses.get_or_add(block, [])
 		cachedRects.get_or_add(block, [])
 
@@ -61,7 +59,7 @@ func _updateCOM(changedVals:Dictionary):
 	var centerOfMass = Vector2(0,0);
 	var _oldMass:int = chunkMass;
 	chunkMass = 0;
-	for blockType in blocks.blocks.keys():
+	for blockType in BlockTypes.blocks.keys():
 		if (changedVals.has(blockType)):
 			pointMasses[blockType] = _reduceToPointMasses(blockType);
 		for point in pointMasses[blockType]:
@@ -75,7 +73,7 @@ func _updateCOM(changedVals:Dictionary):
 func _reduceToPointMasses(blockType:int):
 	var blockPointMasses:Array = [];
 	for recti in cachedRects[blockType]:
-		var blockWeight = blocks.blocks[blockType].weight
+		var blockWeight = BlockTypes.blocks[blockType].weight
 		if (blockWeight != 0):
 			blockPointMasses.push_back(_rectToPointMass(recti, blockWeight))
 	return blockPointMasses
@@ -92,7 +90,7 @@ func _rectToPointMass(recti:Rect2i, weightPerBlock:int):
 #region Render&Physics Management
 
 func _addRenderBoxes(blockType):
-	var image = blocks.blocks[blockType].texture;
+	var image = BlockTypes.blocks[blockType].texture;
 	for rectNum in cachedRects[blockType].size():
 		var rect = cachedRects[blockType][rectNum]
 		var polygon = _makeRenderPolygon(rect, image)
@@ -104,7 +102,7 @@ func _removeRenderBoxes(blockType):
 		get_node(_encodeName(rectNum, blockType)).free()
 
 func _addPhysicsBoxes(blockType:int):
-	if (blocks.blocks[blockType].collision == true):
+	if (BlockTypes.blocks[blockType].collision == true):
 		for rectNum in cachedRects[blockType].size():
 			var rect = cachedRects[blockType][rectNum]
 			var colBox:CollisionShape2D = _makeColBox(rect);
@@ -112,7 +110,7 @@ func _addPhysicsBoxes(blockType:int):
 			add_sibling(colBox)
 
 func _removePhysicsBoxes(blockType:int):
-	if (blocks.blocks[blockType].collision == true):
+	if (BlockTypes.blocks[blockType].collision == true):
 		for rectNum in cachedRects[blockType].size():
 			get_node("../" + _encodeName(rectNum, blockType)).free()
 
