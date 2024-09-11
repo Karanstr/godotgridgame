@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Grid Thing"
+config/name="GridGame"
 run/main_scene="res://Main.scn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
