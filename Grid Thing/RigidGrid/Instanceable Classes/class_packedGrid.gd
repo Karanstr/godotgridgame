@@ -83,5 +83,5 @@ func recacheBinaryStrings() -> void:
 
 func identifySubGroups() -> Array:
 	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())
-	return Util.findGroups(mergedBinArray, rows.size());
+	return Util.findGroups(mergedBinArray, rows.size())
 #

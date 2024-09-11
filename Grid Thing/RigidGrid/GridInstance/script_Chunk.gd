@@ -36,7 +36,7 @@ func _process(_delta):
 				gridData.accessCell(cell, newVal)
 				updateChunk({oldVal:null, newVal:null})
 				var groups = gridData.identifySubGroups()
-				#print(groups.size())
+				print(groups.size())
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
 #Don't pass 0 in here, I'll just have to take it out again
@@ -64,15 +64,15 @@ func _updateCOM(changedVals:Dictionary):
 	var centerOfMass = Vector2(0,0);
 	var _oldMass:int = chunkMass;
 	chunkMass = 0;
-	for blockType in changedVals:
-		pointMasses[blockType] = _reduceToPointMasses(blockType);
+	for blockType in blocks.blocks.keys():
+		if (changedVals.has(blockType)):
+			pointMasses[blockType] = _reduceToPointMasses(blockType);
 		for point in pointMasses[blockType]:
 			centerOfMass += Vector2(point.x * point.z, point.y * point.z)
 			chunkMass += point.z
 	centerOfMass /= Vector2(chunkMass, chunkMass)
 	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
-	var node = get_node("../")
-	node.updateRigidGrid(centerOfMass, chunkMass)
+	get_node("../").updateRigidGrid(centerOfMass, chunkMass)
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):
