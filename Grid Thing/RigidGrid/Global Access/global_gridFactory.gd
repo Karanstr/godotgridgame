@@ -13,5 +13,5 @@ static func createChunk(name:String):
 	chunk.initialize(blockArray, blockSize, gridSize);
 	return chunk
 
-static func formatGrid(data):
+static func formatGrid(_data):
 	pass
