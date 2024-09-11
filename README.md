@@ -1,2 +1,3 @@
 # godotgridgame
-Silly silly github desktop doesn't think this branch exists
+We commiting from the terminal now :sunglasses:
+And it's actually working no
