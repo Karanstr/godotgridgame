@@ -39,15 +39,14 @@ func _process(_delta):
 				print(groups.size())
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
-#Don't pass 0 in here, I'll just have to take it out again
 #We do not update 0. 0 isn't real.
 func updateChunk(changedVals:Dictionary):
 	changedVals.erase(0)
-	for change in changedVals: #Remove Old Boxes
+	for change in changedVals:
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
-	for change in changedVals: #Add Current Boxes
-		cachedRects[change] = Util.greedyRect(gridData.binArrays[change])
+	for change in changedVals:
+		cachedRects[change] = BinUtil.greedyRect(gridData.binArrays[change])
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
 	_updateCOM(changedVals)
@@ -72,7 +71,7 @@ func _updateCOM(changedVals:Dictionary):
 			chunkMass += point.z
 	centerOfMass /= Vector2(chunkMass, chunkMass)
 	#broadCast [oldMass, chunkMass] to chunkManager to update total mass?
-	get_node("../").updateRigidGrid(centerOfMass, chunkMass)
+	get_node("../").updateMass(chunkMass, centerOfMass)
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):
@@ -112,12 +111,12 @@ func _addPhysicsBoxes(blockType:int):
 			var rect = cachedRects[blockType][rectNum]
 			var colBox:CollisionShape2D = _makeColBox(rect);
 			colBox.name = _encodeName(rectNum, blockType)
-			get_node("../../").add_child(colBox)
+			add_sibling(colBox)
 
 func _removePhysicsBoxes(blockType:int):
 	if (blocks.blocks[blockType].collision == true):
 		for rectNum in cachedRects[blockType].size():
-			get_node("../../" + _encodeName(rectNum, blockType)).free()
+			get_node("../" + _encodeName(rectNum, blockType)).free()
 
 func _encodeName(number, blockType) -> String:
 	#Chunk Name, followed by encoded name

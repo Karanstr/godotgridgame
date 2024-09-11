@@ -1,4 +1,4 @@
-class_name Util
+class_name BinUtil
 
 static var maxInt = (2**63)-1
 static var boxSize = 64
@@ -176,7 +176,7 @@ class fixedPackedArray:
 		totalPacks = storageNeeded
 		packSize = sizeOfPack
 		packMask = 2**packSize - 1;
-		packsPerBox = Util.boxSize/packSize
+		packsPerBox = BinUtil.boxSize/packSize
 		totalBoxes = ceili(float(totalPacks)/packsPerBox);
 		for box in totalBoxes:
 			array.push_back(0);
@@ -221,7 +221,7 @@ static func accessIndex(data:Array[int], index:int, packSize:int, modify:int = 0
 	var pos = getPosition(index, packSize);
 	var curVal = rightShift(data[pos.box], pos.shift) & genMask(packSize, 1, 1)
 	if (modify != 0):
-		data[pos.box] += Util.leftShift(modify - curVal, pos.shift)
+		data[pos.box] += leftShift(modify - curVal, pos.shift)
 	return curVal
 
 static func readSection(array:Array[int], packs:int, startIndex:int, packSize:int = 1):
@@ -233,9 +233,9 @@ static func readSection(array:Array[int], packs:int, startIndex:int, packSize:in
 	while packs > 0:
 		var rightSideMask:int = genMask(packSize, min(remPacksInCurBox, packs), packMask);
 		var packsInNextBox = min(boxSize, packs) - remPacksInCurBox
-		var leftSideMask:int = Util.genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0;
-		var rightSide = Util.rightShift(array[pos.box], pos.shift) & rightSideMask;
-		var leftSide = Util.leftShift(array[pos.box+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox < packs) else 0;
+		var leftSideMask:int = genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0;
+		var rightSide = rightShift(array[pos.box], pos.shift) & rightSideMask;
+		var leftSide = leftShift(array[pos.box+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox < packs) else 0;
 		section.push_back(rightSide + leftSide);
 		packs -= packsPerBox;
 		pos.box += 1;

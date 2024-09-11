@@ -12,15 +12,15 @@ var blockTypes:BlockTypes;
 var binArrays:Dictionary = {};
 
 func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataToWrite:Array):
-	if blocksPerRow > Util.boxSize:
-		push_error("packedGrid cannot support row lengths longer than " + String.num_int64(Util.boxSize) + ", if something is broken this is probably why")
+	if blocksPerRow > BinUtil.boxSize:
+		push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
 	blockTypes = gridBlockTypes
 	
-	bitsPerBlock = Util.bitsToStore(blockTypes.maxBlockIndex+1)
-	blocksPerBox = Util.boxSize/bitsPerBlock
+	bitsPerBlock = BinUtil.bitsToStore(blockTypes.maxBlockIndex+1)
+	blocksPerBox = BinUtil.boxSize/bitsPerBlock
 	blocksPerRow = blocksInRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
-	blockMask = Util.genMask(1, bitsPerBlock, 1)
+	blockMask = BinUtil.genMask(1, bitsPerBlock, 1)
 	
 	for row in rowCount:
 		var packedRow:Array[int] = [];
@@ -34,10 +34,10 @@ func _init(rowCount:int, blocksInRow:int, gridBlockTypes:BlockTypes, _gridDataTo
 	recacheBinaryStrings()
 
 func accessCell(cell:Vector2i, modify:int = 0) -> int:
-	var pos = Util.getPosition(cell.x, bitsPerBlock);
-	var curVal = Util.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
+	var pos = BinUtil.getPosition(cell.x, bitsPerBlock);
+	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
 	if (modify != 0):
-		rows[cell.y][pos.box] += Util.leftShift(modify - curVal, pos.shift)
+		rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift)
 		var bitMask = 1 << cell.x
 		binArrays[modify][cell.y] |= bitMask
 		if (curVal != 0):
@@ -53,7 +53,7 @@ func rowToInt(rowNum:int, matchedValues:Dictionary) -> Dictionary:
 	var row = rows[rowNum].duplicate()
 	for block in blocksPerRow:
 		var val:int = row[curBox] & blockMask
-		row[curBox] = Util.rightShift(row[curBox], bitsPerBlock)
+		row[curBox] = BinUtil.rightShift(row[curBox], bitsPerBlock)
 		if matchedValues.has(val): bitRows[val] |= curMask
 		curPack += 1
 		if (curPack == blocksPerBox):
@@ -81,7 +81,10 @@ func recacheBinaryStrings() -> void:
 			newBinaryStrings[block].push_back(tempArrays[row][block])
 	binArrays.merge(newBinaryStrings, true)
 
-func identifySubGroups() -> Array:
+func identifySubGroups():
 	var mergedBinArray = mergeStrings(blockTypes.solidBlocks.keys())
-	return Util.findGroups(mergedBinArray, rows.size())
+	var groups:Array = BinUtil.findGroups(mergedBinArray, rows.size())
+	for group in groups:
+		pass
+	return groups
 #
