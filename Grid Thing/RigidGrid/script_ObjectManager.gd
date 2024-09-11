@@ -13,5 +13,5 @@ func createRigidGrid(position:Vector2):
 	instance.position = position
 	instance.name = "Grid " + String.num_int64(rigidGridCount)
 	add_child(instance)
-	instance.addChunk(false)
+	instance.addChunk("0")
 	rigidGridCount += 1

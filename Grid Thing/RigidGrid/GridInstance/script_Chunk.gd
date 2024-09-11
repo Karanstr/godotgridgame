@@ -6,7 +6,6 @@ var blocks:BlockTypes;
 var gridData:packedGrid;
 var gridDims:Vector2i;
 var blockDims:Vector2;
-var chunkDims:Vector2;
 var chunkCOM:Vector2;
 var chunkMass:int = 0;
 
@@ -15,11 +14,10 @@ var cachedRects:Dictionary = {};
 
 var lastEditKey:Vector2i = Vector2i(-1, -1);
 
-func initialize(chunkDimensions:Vector2, blockTypes:BlockTypes, gridDimensions:Vector2i = Vector2i(64,64)):
+func initialize(blockTypes:BlockTypes, blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
 	blocks = blockTypes
 	gridDims = gridDimensions
-	chunkDims = chunkDimensions
-	blockDims = chunkDims/Vector2(gridDims)
+	blockDims = blockDimensions
 	gridData = packedGrid.new(gridDims.y, gridDims.x, blocks, [])
 	for block in blocks.blocks.keys():
 		pointMasses.get_or_add(block, [])
