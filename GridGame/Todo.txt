@@ -1,23 +1,22 @@
 Todo
 	- Technical Things
-	- - Object detection (bc non attached objects shouldn't be attached)
+	- - Implement many-updating of the grid (without just calling modify a bunch?)
+	- - Object detection
+	- - - Split objects when they are distinct
+	- - - - Actually load/save data now that it's easy
 	- - Add (two?) bits of info for everything to specify if it has special data
-	- - One bit for special data, one bit for whether that special data affects it visually
-	- - Way to store/recall special data
-	- - Don't greedy mesh objects with visually distinct special data
-	- - Potentially clean up chaining with signals?
+	- - - One bit for special data, one bit for whether that special data affects it visually
+	- - - Don't greedy mesh objects with visually distinct special data
+	- - - Way to store/recall special data
+	- - Enhance collision meshing 
+	- - - Allow for different collision shapes/meshes
+	- - - Mesh culling to minimize collision objects in scene at once (2d Occlusion cullingish)
+	
 	
 	- Implement multi chunk(64x64 blocks) objects
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
+	- - - How is this different from LODDing/making a bigger grid of grids
 	- - Allow center of mass to be influenced by all chunks properly
-	- - Broadcast old and new mass of a chunk to chunkmanager for more efficient mass updates
-	
-	- Clean up/optimise collision meshing 
-	- - Mesh culling to minimize collision objects in scene at once (2d Occlusion culling)
-	
-	- Grid
-	- - Raystepping between mouse prior and current positions to prevent skipping while dragging? 
-	- - Add saving and loading of grid
 	
 	- Other Collision Stuff
 	- - Figure out sleeping issue when updating collision boxes
@@ -37,6 +36,9 @@ Done
 	-/ Read cached point masses for blockTypes which weren't updated
 	-/ Allow automatic recalculation of center of mass
 	-/ Implement Center of Mass
+	-/ Fixed texture inheritance
+	-/ Detect distinct (non touching) objects on adjacent faces
+	-/ Refactor entire grid system to simplify loading/saving process
 
 Links
 	https://www.pixilart.com/draw
