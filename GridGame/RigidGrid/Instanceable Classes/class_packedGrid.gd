@@ -1,25 +1,15 @@
-class_name packedGrid
+class_name packedGrid extends GridFactory.Grid
 
-var rows:Array = []; #rows.size() == dim.y/columns
-var blocksPerRow:int; #Dim.x
-var boxesPerRow:int;
 var binArrays:Dictionary = {};
 
 func _init(rowCount:int, blocksInRow:int, _gridDataToWrite:Array):
 	if blocksInRow > BinUtil.boxSize: push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
-	blocksPerRow = blocksInRow
-	boxesPerRow = ceili(float(blocksPerRow)/GridFactory.blocksPerBox)
-	
+	super(rowCount, blocksInRow)
 	for block in BlockTypes.blocks.keys():
 		binArrays.get_or_add(block, [])
-	for row in rowCount:
-		var packedRow:Array[int] = [];
-		for block in boxesPerRow:
-			packedRow.push_back(0)
-		rows.push_back(packedRow) 
-		
 	recacheBinaryStrings()
 
+#Overloading to also modify binArrays
 func accessCell(cell:Vector2i, modify:int = 0) -> int:
 	var pos = BinUtil.getPosition(cell.x, GridFactory.bitsPerBlock);
 	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & GridFactory.blockMask

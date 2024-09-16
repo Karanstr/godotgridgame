@@ -5,7 +5,6 @@ static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1)
 static var blocksPerBox:int = BinUtil.boxSize/bitsPerBlock
 static var blockMask:int = BinUtil.genMask(1, bitsPerBlock, 1)
 
-
 const chunkScript = preload("../GridInstance/script_Chunk.gd")
 
 static func createChunk(name:String, _grid:Array):
@@ -15,11 +14,7 @@ static func createChunk(name:String, _grid:Array):
 	var gridSize:Vector2i = Vector2i(4, 4) #Cells
 	chunk.name = name;
 	chunk.initialize(blockSize, gridSize);
-	
 	return chunk
-
-static func formatGrid(_data):
-	pass
 
 class Row:
 	var data:Array[int]
@@ -70,13 +65,35 @@ static func rowToInt(rowData:Array, matchedValues:Dictionary) -> Dictionary:
 	return bitRows
 
 class Grid:
-	func _init():
+	var rows:Array = []
+	var blocksPerRow:int
+	var boxesPerRow:int
+	
+	func _init(gridRows:int, gridBlocksPerRow:int):
+		blocksPerRow = gridBlocksPerRow
+		boxesPerRow = ceili(float(blocksPerRow)/GridFactory.blocksPerBox)
+		
+		for row in gridRows: #Fill grid with null data
+			var packedRow:Array[int] = [];
+			for block in boxesPerRow:
+				packedRow.push_back(0)
+			rows.push_back(packedRow) 
+		
+	func accessCell(cell:Vector2i, modify:int = 0) -> int:
+		var pos = BinUtil.getPosition(cell.x, GridFactory.bitsPerBlock);
+		var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & GridFactory.blockMask
+		if (modify != 0):
+			rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift)
+		return curVal
+	
+	func fillWithData():
 		pass
+
 
 static func groupToGrid(group:Array[int]) -> Array:
 	var newGrid:Array = []
 	var culledGrid:Array = []
-	var minOffset:int = INF
+	var minOffset:int = 64
 	var maxLength:int = 0
 	for row in group.size():
 		var curRow = intToRow(row, group[row])
@@ -85,4 +102,4 @@ static func groupToGrid(group:Array[int]) -> Array:
 		if curRow.length < maxLength: maxLength = curRow.length
 	for row in newGrid:
 		culledGrid.push_back(BinUtil.readSection(row, maxLength, minOffset, GridFactory.bitsPerBlock))
-	return newGrid
+	return culledGrid

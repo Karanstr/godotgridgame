@@ -2,7 +2,7 @@ extends Node2D
 
 @export var editable:bool = true;
 
-var gridData:packedGrid;
+var grid:packedGrid;
 var gridDims:Vector2i;
 var blockDims:Vector2;
 var chunkCOM:Vector2;
@@ -16,7 +16,7 @@ var lastEditKey:Vector2i = Vector2i(-1, -1);
 func initialize(blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
 	gridDims = gridDimensions
 	blockDims = blockDimensions
-	gridData = packedGrid.new(gridDims.y, gridDims.x, [])
+	grid = packedGrid.new(gridDims.y, gridDims.x, [])
 	for block in BlockTypes.blocks.keys():
 		pointMasses.get_or_add(block, [])
 		cachedRects.get_or_add(block, [])
@@ -27,9 +27,9 @@ func _process(_delta):
 			var cell:Vector2i = pointToCell(get_local_mouse_position())
 			if (cell != lastEditKey && cell != Vector2i(-1, -1)):
 				lastEditKey = cell
-				var oldVal:int = gridData.accessCell(cell)
+				var oldVal:int = grid.accessCell(cell)
 				var newVal:int = 2 if oldVal == 1 else 1;
-				gridData.accessCell(cell, newVal)
+				grid.accessCell(cell, newVal)
 				updateChunk({oldVal:null, newVal:null})
 				#var groups:Array = gridData.identifySubGroups()
 				#for group in groups:
@@ -47,7 +47,7 @@ func updateChunk(changedVals:Dictionary):
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
 	for change in changedVals:
-		cachedRects[change] = BinUtil.greedyRect(gridData.binArrays[change])
+		cachedRects[change] = BinUtil.greedyRect(grid.binArrays[change])
 		_addRenderBoxes(change)
 		_addPhysicsBoxes(change)
 	_updateCOM(changedVals)
