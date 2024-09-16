@@ -15,7 +15,7 @@ func _process(_delta):
 #region Chunk Management
 
 func addChunk(chunkName):
-	add_child(GridFactory.createChunk(chunkName))
+	add_child(GridFactory.createChunk(chunkName, []))
 
 func updateMass(newMass:int, newCOM:Vector2):
 	mass = newMass

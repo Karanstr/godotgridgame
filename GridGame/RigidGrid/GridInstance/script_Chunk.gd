@@ -31,8 +31,13 @@ func _process(_delta):
 				var newVal:int = 2 if oldVal == 1 else 1;
 				gridData.accessCell(cell, newVal)
 				updateChunk({oldVal:null, newVal:null})
-				var groups = gridData.identifySubGroups()
-				print(groups.size())
+				#var groups:Array = gridData.identifySubGroups()
+				#for group in groups:
+					#print("Group")
+					#var newGrid = gridData.groupToGrid(group);
+					#for row in newGrid.size():
+						#print("Row " + String.num_int64(row))
+						#print(String.num_uint64(newGrid[row][0], 2))
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
 #We do not update 0. 0 isn't real.
@@ -117,7 +122,7 @@ func _removePhysicsBoxes(blockType:int):
 func _encodeName(number, blockType) -> String:
 	#Chunk Name, followed by encoded name
 	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
-	return name + " " + String.num_int64((number << gridData.bitsPerBlock) + blockType)
+	return name + " " + String.num_int64((number << GridFactory.bitsPerBlock) + blockType)
 
 func _makeRenderPolygon(recti, texture) -> Polygon2D:
 	var rect = _rectiToRect(recti);

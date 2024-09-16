@@ -11,6 +11,7 @@ Todo
 	- - Enhance collision meshing 
 	- - - Allow for different collision shapes/meshes
 	- - - Mesh culling to minimize collision objects in scene at once (2d Occlusion cullingish)
+	- - Implement subGridding
 	
 	
 	- Implement multi chunk(64x64 blocks) objects
