@@ -5,61 +5,64 @@ static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1)
 static var blocksPerBox:int = BinUtil.boxSize/bitsPerBlock
 static var blockMask:int = BinUtil.genMask(1, bitsPerBlock, 1)
 
-var rows:Array = []
-var blocksPerRow:int
+var rows:Array = [] #rows.size() is grid.y
+var blocksPerRow:int #grid.x
 var boxesPerRow:int
-
-var binArrays:Dictionary = {};
+var templateArray:Array[int] = []
+var binGrids:Dictionary = {}
 
 func _init(rowCount:int, gridBlocksPerRow:int):
 	if gridBlocksPerRow > BinUtil.boxSize: push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
 	blocksPerRow = gridBlocksPerRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
-	
 	for row in rowCount: #Fill grid with null data
+		templateArray.push_back(0)
 		var packedRow:Array[int] = [];
 		for block in boxesPerRow:
 			packedRow.push_back(0)
 		rows.push_back(packedRow) 
-		
-	for block in BlockTypes.blocks.keys():
-		binArrays.get_or_add(block, [])
-	recacheBinaryStrings()
 
-#Overloading to also modify binArrays
-func accessCell(cell:Vector2i, modify:int = 0) -> int:
+func accessCell(cell:Vector2i, modify:int = -1) -> int:
 	var pos = BinUtil.getPosition(cell.x, bitsPerBlock);
 	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
-	if (modify != 0):
+	if (modify != -1):
 		rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift)
 		var bitMask = 1 << cell.x
-		binArrays[modify][cell.y] |= bitMask
+		if (modify != 0):
+			var newBinArr = binGrids.get_or_add(modify, templateArray.duplicate())
+			newBinArr[cell.y] |= bitMask
 		if (curVal != 0):
-			binArrays[curVal][cell.y] &= ~bitMask
+			binGrids[curVal][cell.y] &= ~bitMask
+			if binGrids[curVal][cell.y] == 0:
+				if (binGrids[curVal].any(func(r): return r != 0) == false):
+					binGrids.erase(curVal)
 	return curVal
 
-func mergeStrings(values:Array) -> Array[int]:
-	var binaryArray:Array[int] = [];
+func mergeBinGrids(values:Array) -> Array[int]:
+	var binaryGrid:Array[int] = [];
 	for row in rows.size():
-		binaryArray.push_back(0)
+		binaryGrid.push_back(0)
 		for value in values: #Combine BStrings into single string per row
-			binaryArray[row] |= binArrays[value][row]
-	return binaryArray
+			if (binGrids.has(value)):
+				binaryGrid[row] |= binGrids[value][row]
+	return binaryGrid
 
-func recacheBinaryStrings() -> void:
-	var newBinaryStrings:Dictionary = {};
+func _recacheBinaryGrids() -> void:
+	var newBinaryGrids:Dictionary = {};
 	var tempArrays:Array = [];
 	for row in rows: 
 		tempArrays.push_back(rowToInt(row, BlockTypes.blocks));
 	for block in BlockTypes.blocks:
-		newBinaryStrings.get_or_add(block, []);
+		newBinaryGrids.get_or_add(block, []);
 		for row in rows.size():
-			newBinaryStrings[block].push_back(tempArrays[row][block])
-	binArrays.merge(newBinaryStrings, true)
+			newBinaryGrids[block].push_back(tempArrays[row][block])
+		if (newBinaryGrids[block].any(func(r): return r != 0) == false):
+			newBinaryGrids.erase(block)
+	binGrids.merge(newBinaryGrids, true)
 
 #Figure out how to define 'main' grid, or do we just destroy this grid and create a new one for each group
 func identifySubGroups() -> Array:
-	var mergedBinArray = mergeStrings(BlockTypes.solidBlocks.keys())
+	var mergedBinArray = mergeBinGrids(BlockTypes.solidBlocks.keys())
 	var groups:Array = BinUtil.findGroups(mergedBinArray, rows.size())
 	return groups
 
@@ -126,6 +129,5 @@ static func groupToGrid(group:Array[int]) -> Array:
 	for row in newGrid:
 		culledGrid.push_back(BinUtil.readSection(row, maxLength, minOffset, bitsPerBlock))
 	return culledGrid
-
 
 #endregion

@@ -11,11 +11,12 @@ class Block:
 		collision = doesCollide;
 		weight = blockWeight
 
+static var maxBlockIndex = 2;
+
 static var blocks:Dictionary = {
-	1: Block.new("green", preload("res://RigidGrid/Textures/green.png"), false, 0),
-	2: Block.new("red", preload("res://RigidGrid/Textures/red.png"), true, 1)
+	1: Block.new("green", preload("res://RigidGrid/Textures/green.png"), true, 1),
+	2: Block.new("red", preload("res://RigidGrid/Textures/red.png"), true, 2)
 }
 static var solidBlocks:Dictionary = {
 	2: null,
 }
-static var maxBlockIndex = 2;

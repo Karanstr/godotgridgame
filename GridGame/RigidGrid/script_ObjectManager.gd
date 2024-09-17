@@ -20,11 +20,11 @@ func createRigidGrid(position:Vector2):
 
 const chunkScript = preload("./GridInstance/script_Chunk.gd")
 
-static func createChunk(name:String, _grid:Array):
+static func createChunk(chunkName:String, _grid:Array):
 	var chunk:Node2D = Node2D.new();
 	chunk.set_script(chunkScript);
 	var blockSize:Vector2 = Vector2(8, 8) #Units
 	var gridSize:Vector2i = Vector2i(4, 4) #Cells
-	chunk.name = name;
+	chunk.name = chunkName;
 	chunk.initialize(blockSize, gridSize);
 	return chunk
