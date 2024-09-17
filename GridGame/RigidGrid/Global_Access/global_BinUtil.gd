@@ -224,9 +224,8 @@ static func accessIndex(data:Array[int], index:int, packSize:int, modify:int = 0
 		data[pos.box] += leftShift(modify - curVal, pos.shift)
 	return curVal
 
-static func readSection(array:Array[int], packs:int, startIndex:int, packSize:int = 1):
+static func readSection(array:Array, packs:int, startIndex:int, packMask:int, packSize:int = 1):
 	var packsPerBox:int = boxSize/packSize
-	var packMask = genMask(packSize, 1, 1)
 	var section:Array[int] = [];
 	var pos = getPosition(startIndex, packSize)
 	var remPacksInCurBox:int = (boxSize - pos.shift)/packSize
@@ -236,7 +235,7 @@ static func readSection(array:Array[int], packs:int, startIndex:int, packSize:in
 		var leftSideMask:int = genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0;
 		var rightSide = rightShift(array[pos.box], pos.shift) & rightSideMask;
 		var leftSide = leftShift(array[pos.box+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox < packs) else 0;
-		section.push_back(rightSide + leftSide);
+		section.push_back(rightSide | leftSide);
 		packs -= packsPerBox;
 		pos.box += 1;
 		remPacksInCurBox = boxSize - packsInNextBox;

@@ -63,35 +63,34 @@ func modifyRow(rowNum:int, newData:Row, preserve:bool = false):
 		var startIndex:int = newData.start - startBox * blocksPerBox
 		#Any box after startbox + middleBoxes + 1 can be ignored
 		var middleBoxes:int = ((newData.length + startIndex) / blocksPerBox) - 1
-		if middleBoxes < 0: middleBoxes = 0
 		#Num of packs we need to shift in as ones for the final box
 		var endIndex:int = (newData.length + startIndex) % blocksPerBox
 		#Handle first box
 		var firstMask:int = 0
-		for index in blocksPerBox - startIndex:
+		for index in min(blocksPerBox - startIndex, newData.length):
 			firstMask <<= bitsPerBlock
 			firstMask |= blockMask
 		firstMask <<= startIndex * bitsPerBlock
-		firstMask = ~firstMask
-		rows[rowNum][startBox] &= firstMask
-		#Handle last box
-		var lastMask:int = 0
-		for index in endIndex:
-			lastMask <<= bitsPerBlock
-			lastMask |= blockMask
-		lastMask = ~lastMask
-		rows[rowNum][startBox + middleBoxes] &= lastMask
-		#Fill firstBox (it's hard :[ )
-		var firstInsert = BinUtil.readSection(newData.data, blocksPerBox - startIndex, 0, bitsPerBlock)
-		firstInsert = BinUtil.leftShift(firstInsert, startIndex)
+		rows[rowNum][startBox] &= ~firstMask
+		var firstInsert = BinUtil.readSection(newData.data, min(blocksPerBox - startIndex, newData.length), 0, blockMask, bitsPerBlock)[0]
+		firstInsert = BinUtil.leftShift(firstInsert, startIndex*bitsPerBlock)
 		rows[rowNum][startBox] |= firstInsert
 		var currentIndex = blocksPerBox - startIndex
-		for box in middleBoxes:
-			rows[rowNum][startBox + 1 + box] = BinUtil.readSection(newData.data, blocksPerBox, currentIndex, bitsPerBlock)
-			currentIndex += blocksPerBox
+		if middleBoxes != -1:
+			for box in middleBoxes:
+				rows[rowNum][startBox + 1 + box] = BinUtil.readSection(newData.data, blocksPerBox, currentIndex, blockMask, bitsPerBlock)[0]
+				currentIndex += blocksPerBox
 		#Fill last box (less hard :| )
-		var lastInsert = BinUtil.readSection(newData.data, endIndex, currentIndex, bitsPerBlock)
-		rows[rowNum][startBox] |= lastInsert
+		if middleBoxes > 0:
+			#Handle last box
+			var lastMask:int = 0
+			for index in endIndex:
+				lastMask <<= bitsPerBlock
+				lastMask &= blockMask
+			lastMask = ~lastMask
+			rows[rowNum][startBox + middleBoxes] &= lastMask
+			var lastInsert = BinUtil.readSection(newData.data, endIndex, currentIndex, bitsPerBlock)[0]
+			rows[rowNum][startBox] |= lastInsert
 	_recacheBinaryRow(rowNum)
 
 func _recacheBinaryRow(rowNum:int):
