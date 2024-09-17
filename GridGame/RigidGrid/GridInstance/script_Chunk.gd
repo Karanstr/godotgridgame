@@ -28,7 +28,8 @@ func _process(_delta):
 				var newVal:int = 2 if oldVal == 1 else 1;
 				grid.accessCell(cell, newVal)
 				var _groups:Array = grid.identifySubGroups()
-				updateChunk({oldVal:null, newVal:null})
+				grid.modifyRow(1, grid.Row.new([153], 0, 4), false)
+				updateChunk(BlockTypes.blocks)
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
 #We do not update 0. 0 isn't real.

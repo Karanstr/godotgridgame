@@ -31,7 +31,7 @@ func accessCell(cell:Vector2i, modify:int = -1) -> int:
 		if (modify != 0):
 			var newBinArr = binGrids.get_or_add(modify, templateArray.duplicate())
 			newBinArr[cell.y] |= bitMask
-		if (curVal != 0):
+		if (curVal != 0 && curVal != modify):
 			binGrids[curVal][cell.y] &= ~bitMask
 			if binGrids[curVal][cell.y] == 0:
 				if (binGrids[curVal].any(func(r): return r != 0) == false):
@@ -54,14 +54,52 @@ func modifyRow(rowNum:int, newData:Row, preserve:bool = false):
 	if preserve == false:
 		for box in boxesPerRow:
 			rows[rowNum][box] = 0
-			if newData.data.size() < box:
+			if newData.data.size()-1 <= box:
 				rows[rowNum][box] = newData.data[box]
+	else:
+		#Any box before startbox can be ignored
+		var startBox:int = newData.start / blocksPerBox
+		#Num of packs we need to shift in as ones for the first box
+		var startIndex:int = newData.start - startBox * blocksPerBox
+		#Any box after startbox + middleBoxes + 1 can be ignored
+		var middleBoxes:int = ((newData.length + startIndex) / blocksPerBox) - 1
+		if middleBoxes < 0: middleBoxes = 0
+		#Num of packs we need to shift in as ones for the final box
+		var endIndex:int = (newData.length + startIndex) % blocksPerBox
+		#Handle first box
+		var firstMask:int = 0
+		for index in blocksPerBox - startIndex:
+			firstMask <<= bitsPerBlock
+			firstMask |= blockMask
+		firstMask <<= startIndex * bitsPerBlock
+		firstMask = ~firstMask
+		rows[rowNum][startBox] &= firstMask
+		#Handle last box
+		var lastMask:int = 0
+		for index in endIndex:
+			lastMask <<= bitsPerBlock
+			lastMask |= blockMask
+		lastMask = ~lastMask
+		rows[rowNum][startBox + middleBoxes] &= lastMask
+		#Fill firstBox (it's hard :[ )
+		var firstInsert = BinUtil.readSection(newData.data, blocksPerBox - startIndex, 0, bitsPerBlock)
+		firstInsert = BinUtil.leftShift(firstInsert, startIndex)
+		rows[rowNum][startBox] |= firstInsert
+		var currentIndex = blocksPerBox - startIndex
+		for box in middleBoxes:
+			rows[rowNum][startBox + 1 + box] = BinUtil.readSection(newData.data, blocksPerBox, currentIndex, bitsPerBlock)
+			currentIndex += blocksPerBox
+		#Fill last box (less hard :| )
+		var lastInsert = BinUtil.readSection(newData.data, endIndex, currentIndex, bitsPerBlock)
+		rows[rowNum][startBox] |= lastInsert
 	_recacheBinaryRow(rowNum)
 
-func _recacheBinaryRow(rowNum:int) -> void:
+func _recacheBinaryRow(rowNum:int):
 	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
-	for blockRow in newRows.size():
-		if (newRows[blockRow] != 0): binGrids[blockRow][rowNum] = newRows[blockRow]
+	for blockGrid in BlockTypes.blocks:
+		binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
+		binGrids[blockGrid][rowNum] = newRows[blockGrid]
+	return true
 
 #Figure out how to define 'main' grid, or do we just destroy this grid and create a new one for each group
 func identifySubGroups() -> Array:
@@ -72,7 +110,7 @@ func identifySubGroups() -> Array:
 #region working on it
 
 class Row:
-	var data:Array[int]
+	var data:Array
 	var start:int
 	var length:int
 	func _init(rowData, rowStart, rowLength):
@@ -104,19 +142,14 @@ static func intToRow(rowData, bitRow:int):
 static func rowToInt(rowData:Array, matchedValues:Dictionary) -> Dictionary:
 	var bitRows:Dictionary = {}
 	for block in matchedValues.keys(): bitRows.get_or_add(block, 0)
-	var curPack:int = 0
-	var curBox:int = 0
 	var curMask = 1
 	var row = rowData.duplicate()
-	for block in rowData:
-		var val:int = row[curBox] & blockMask
-		row[curBox] = BinUtil.rightShift(row[curBox], bitsPerBlock)
-		if matchedValues.has(val): bitRows[val] |= curMask
-		curPack += 1
-		if (curPack == blocksPerBox):
-			curPack = 0
-			curBox += 1
-		if (curMask > 0): curMask <<= 1
+	for box in rowData.size():
+		while (row[box] != 0):
+			var curVal:int = row[box] & blockMask
+			row[box] = BinUtil.rightShift(row[box], bitsPerBlock)
+			if matchedValues.has(curVal): bitRows[curVal] |= curMask
+			if (curMask > 0): curMask <<= 1
 	return bitRows
 
 static func groupToGrid(group:Array[int]) -> Array:
