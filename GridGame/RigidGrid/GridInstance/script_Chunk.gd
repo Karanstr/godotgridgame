@@ -1,22 +1,22 @@
 extends Node2D
 
-@export var editable:bool = true;
+@export var editable:bool = true
 
-var grid:packedGrid;
-var gridDims:Vector2i;
-var blockDims:Vector2;
-var chunkCOM:Vector2;
-var chunkMass:int = 0;
+var grid:packedGrid
+var gridDims:Vector2i
+var blockDims:Vector2
+var chunkCOM:Vector2
+var chunkMass:int = 0
 
-var pointMasses:Dictionary = {};
-var cachedRects:Dictionary = {};
+var pointMasses:Dictionary = {}
+var cachedRects:Dictionary = {}
 
-var lastEditKey:Vector2i = Vector2i(-1, -1);
+var lastEditKey:Vector2i = Vector2i(-1, -1)
 
 func initialize(blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
 	gridDims = gridDimensions
 	blockDims = blockDimensions
-	grid = packedGrid.new(gridDims.y, gridDims.x, [])
+	grid = packedGrid.new(gridDims.y, gridDims.x)
 	for block in BlockTypes.blocks.keys():
 		pointMasses.get_or_add(block, [])
 		cachedRects.get_or_add(block, [])
@@ -30,14 +30,8 @@ func _process(_delta):
 				var oldVal:int = grid.accessCell(cell)
 				var newVal:int = 2 if oldVal == 1 else 1;
 				grid.accessCell(cell, newVal)
+				var groups:Array = grid.identifySubGroups()
 				updateChunk({oldVal:null, newVal:null})
-				#var groups:Array = gridData.identifySubGroups()
-				#for group in groups:
-					#print("Group")
-					#var newGrid = gridData.groupToGrid(group);
-					#for row in newGrid.size():
-						#print("Row " + String.num_int64(row))
-						#print(String.num_uint64(newGrid[row][0], 2))
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
 #We do not update 0. 0 isn't real.
@@ -122,7 +116,7 @@ func _removePhysicsBoxes(blockType:int):
 func _encodeName(number, blockType) -> String:
 	#Chunk Name, followed by encoded name
 	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
-	return name + " " + String.num_int64((number << GridFactory.bitsPerBlock) + blockType)
+	return name + " " + String.num_int64((number << grid.bitsPerBlock) + blockType)
 
 func _makeRenderPolygon(recti, texture) -> Polygon2D:
 	var rect = _rectiToRect(recti);

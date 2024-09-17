@@ -1,4 +1,5 @@
 extends Node
+class_name ObjectManager
 
 const rigidGrid = preload("./GridInstance/RigidGrid.scn")
 
@@ -13,5 +14,17 @@ func createRigidGrid(position:Vector2):
 	instance.position = position
 	instance.name = "Grid " + String.num_int64(rigidGridCount)
 	add_child(instance)
-	instance.addChunk("0")
 	rigidGridCount += 1
+	instance.addChunk("0")
+
+
+const chunkScript = preload("./GridInstance/script_Chunk.gd")
+
+static func createChunk(name:String, _grid:Array):
+	var chunk:Node2D = Node2D.new();
+	chunk.set_script(chunkScript);
+	var blockSize:Vector2 = Vector2(8, 8) #Units
+	var gridSize:Vector2i = Vector2i(4, 4) #Cells
+	chunk.name = name;
+	chunk.initialize(blockSize, gridSize);
+	return chunk
