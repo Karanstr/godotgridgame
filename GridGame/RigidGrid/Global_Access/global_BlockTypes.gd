@@ -18,5 +18,6 @@ static var blocks:Dictionary = {
 	2: Block.new("red", preload("res://RigidGrid/Textures/red.png"), true, 2)
 }
 static var solidBlocks:Dictionary = {
+	1: null,
 	2: null,
 }

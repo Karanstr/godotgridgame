@@ -47,18 +47,21 @@ func mergeBinGrids(values:Array) -> Array[int]:
 				binaryGrid[row] |= binGrids[value][row]
 	return binaryGrid
 
-func _recacheBinaryGrids() -> void:
-	var newBinaryGrids:Dictionary = {};
-	var tempArrays:Array = [];
-	for row in rows: 
-		tempArrays.push_back(rowToInt(row, BlockTypes.blocks));
-	for block in BlockTypes.blocks:
-		newBinaryGrids.get_or_add(block, []);
-		for row in rows.size():
-			newBinaryGrids[block].push_back(tempArrays[row][block])
-		if (newBinaryGrids[block].any(func(r): return r != 0) == false):
-			newBinaryGrids.erase(block)
-	binGrids.merge(newBinaryGrids, true)
+func modifyRow(rowNum:int, newData:Row, preserve:bool = false):
+	if newData.length > blocksPerRow:
+		print("Cannot insert row of length " + String.num_int64(newData.length) + " into row of " + String.num_int64(blocksPerRow))
+		return false
+	if preserve == false:
+		for box in boxesPerRow:
+			rows[rowNum][box] = 0
+			if newData.data.size() < box:
+				rows[rowNum][box] = newData.data[box]
+	_recacheBinaryRow(rowNum)
+
+func _recacheBinaryRow(rowNum:int) -> void:
+	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
+	for blockRow in newRows.size():
+		if (newRows[blockRow] != 0): binGrids[blockRow][rowNum] = newRows[blockRow]
 
 #Figure out how to define 'main' grid, or do we just destroy this grid and create a new one for each group
 func identifySubGroups() -> Array:
