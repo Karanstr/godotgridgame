@@ -1,9 +1,7 @@
 Todo
 	- Technical Things
-	- - Implement many-updating of the grid (without just calling modify a bunch?)
 	- - Object detection
 	- - - Split objects when they are distinct
-	- - - - Actually load/save data now that it's easy
 	- - Add (two?) bits of info for everything to specify if it has special data
 	- - - One bit for special data, one bit for whether that special data affects it visually
 	- - - Don't greedy mesh objects with visually distinct special data
@@ -13,7 +11,6 @@ Todo
 	- - - Mesh culling to minimize collision objects in scene at once (2d Occlusion cullingish)
 	- - Implement subGridding
 	- - Give every grid a grid for collisions and a grid for visuals?
-	
 	
 	- Implement multi chunk(64x64 blocks) objects
 	- - Add ability to offset chunks from eachother (and recenter chunks when adding/removing them?)
@@ -41,6 +38,7 @@ Done
 	-/ Fixed texture inheritance
 	-/ Detect distinct (non touching) objects on adjacent faces
 	-/ Refactor entire grid system to simplify loading/saving process
-
+	-/ Implement many-updating of the grid (without just calling modify a bunch)
+	
 Links
 	https://www.pixilart.com/draw

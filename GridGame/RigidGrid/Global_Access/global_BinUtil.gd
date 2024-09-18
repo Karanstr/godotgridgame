@@ -71,55 +71,66 @@ static func findMasksInInt(num:int) -> Array:
 		leading0s += maskSize;
 	return masks
 
-static func findFirstMask(num:int) -> int:
+static func findFirstMask(num:int):
 	var mask:int = findRightSetBit(num);
+	var size = 1
 	while true:
 		var nextMask = ((mask << 1) | mask) & num
 		if (mask == nextMask):
 			break
 		mask = nextMask
-	return mask
+		size += 1
+	return [mask, size]
 
-static func extendMask(num:int, mask:int) -> int:
+static func extendMask(num:int, mask:int):
+	var leftExpands:int = 0
+	var rightExpands:int = 0
 	while true:
 		var newMask = (leftShift(mask, 1) & num) | mask
 		if (newMask == mask):
 			break
 		mask = newMask
+		leftExpands += 1
 	while true:
 		var newMask = (rightShift(mask, 1) & num) | mask
 		if (newMask == mask):
 			break
 		mask = newMask
-	return mask
+		rightExpands += 1
+	return [mask, [leftExpands, rightExpands]]
 
 #endregion
 
 #region binArray Deriving Functions
 
 static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
-	var checks:Array = [
+	return [
 	false if rowNum + 1 == maxRow else Vector2i(mask, rowNum + 1),
 	false if rowNum - 1 == -1 else Vector2i(mask, rowNum - 1)
 	]
-	return checks 
+
+class Group:
+	var blockCount:int
+	var binGrid:Array[int]
+	func _init(data:Array[int], blocks:int):
+		binGrid = data
+		blockCount = blocks
 
 static func findGroups(binArray:Array[int], numOfRows:int):
 	var binaryArray = binArray.duplicate()
-	#Can't search an empty grid
-	if (binaryArray.all(func(r): return r == 0)): return []
 	var groups:Array = []
 	while (binaryArray.any(func(r): return r != 0)):
+		var blockCount:int = 0;
 		var groupArray:Array[int] = []
 		for row in numOfRows: groupArray.push_back(0)
-		groups.push_back(groupArray)
 		var checks:Array = []
 		for row in binaryArray.size(): #Find first row with data
 			if (binaryArray[row] != 0):
 				var fullMask = findFirstMask(binaryArray[row])
-				checks.append_array(makeNextChecks(fullMask, row, binaryArray.size()))
-				binaryArray[row] &= ~fullMask
-				groupArray[row] |= fullMask
+				blockCount += fullMask[1]
+				checks.append_array(makeNextChecks(fullMask[0], row, binaryArray.size()))
+				binaryArray[row] &= ~fullMask[0]
+				groupArray[row] |= fullMask[0]
 				break
 		while checks.is_empty() == false:
 			var curCheck = checks.pop_back()
@@ -128,11 +139,14 @@ static func findGroups(binArray:Array[int], numOfRows:int):
 			var newMask = binaryArray[curCheck.y] & curCheck.x
 			while newMask != 0:
 				var foundMask = findFirstMask(newMask)
-				newMask &= ~foundMask
-				var fullMask = extendMask(binaryArray[curCheck.y], foundMask) 
-				binaryArray[curCheck.y] &= ~fullMask
-				groupArray[curCheck.y] |= fullMask
-				checks.append_array(makeNextChecks(fullMask, curCheck.y, binaryArray.size()))
+				blockCount += foundMask[1]
+				newMask &= ~foundMask[0]
+				var fullMask = extendMask(binaryArray[curCheck.y], foundMask[0]) 
+				binaryArray[curCheck.y] &= ~fullMask[0]
+				groupArray[curCheck.y] |= fullMask[0]
+				checks.append_array(makeNextChecks(fullMask[0], curCheck.y, binaryArray.size()))
+				blockCount += fullMask[1][0] + fullMask[1][1]
+		groups.push_back(Group.new(groupArray, blockCount))
 	return groups
 
 static func greedyRect(binArray:Array) -> Array:
