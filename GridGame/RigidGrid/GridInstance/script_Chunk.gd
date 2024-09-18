@@ -17,8 +17,6 @@ func initialize(blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,6
 	gridDims = gridDimensions
 	blockDims = blockDimensions
 	grid = packedGrid.new(gridDims.y, gridDims.x)
-	print(String.num_int64(-253, 2))
-	print(String.num_uint64(-253, 2))
 
 func _process(_delta):
 	if (editable):
@@ -30,7 +28,7 @@ func _process(_delta):
 				var newVal:int = 2 if oldVal == 1 else 1;
 				grid.accessCell(cell, newVal)
 				var _groups:Array = grid.identifySubGroups()
-				grid.modifyRow(1, grid.Row.new([25], 1, 3), true)
+				grid.modifyRow(1, grid.Row.new([1152921504606846976, 18], 0, 18), true)
 				updateChunk(BlockTypes.blocks)
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
