@@ -34,8 +34,7 @@ func accessCell(cell:Vector2i, modify:int = -1) -> int:
 		if (curVal != 0 && curVal != modify):
 			binGrids[curVal][cell.y] &= ~bitMask
 			if binGrids[curVal][cell.y] == 0:
-				if (binGrids[curVal].any(func(r): return r != 0) == false):
-					binGrids.erase(curVal)
+				cleanBinGrids({curVal:null})
 	return curVal
 
 func mergeBinGrids(values:Array) -> Array[int]:
@@ -46,6 +45,11 @@ func mergeBinGrids(values:Array) -> Array[int]:
 			if (binGrids.has(value)):
 				binaryGrid[row] |= binGrids[value][row]
 	return binaryGrid
+
+func cleanBinGrids(values:Dictionary):
+	for value in values:
+		if (binGrids[value].any(func(r): return r != 0) == false):
+			binGrids.erase(value)
 
 #Don't take data as newRow, take it as 'data, startInsert, blocksToBeInserted' or smthing like that
 func modifyRow(rowNum:int, newData:Row, treat0asNull:bool = false):
@@ -73,17 +77,20 @@ func modifyRow(rowNum:int, newData:Row, treat0asNull:bool = false):
 		curIndex = 0
 	_recacheBinaryRow(rowNum)
 
+#Speedy way to set entire row to 0
 func zeroRow(rowNum:int):
 	for box in boxesPerRow:
 		rows[rowNum][box] = 0
 	for grid in binGrids:
 		binGrids[grid][rowNum] = 0
+		cleanBinGrids({grid:null})
 
 func _recacheBinaryRow(rowNum:int):
 	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
 	for blockGrid in BlockTypes.blocks:
 		binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
 		binGrids[blockGrid][rowNum] = newRows[blockGrid]
+		cleanBinGrids({blockGrid:null})
 	return true
 
 #Figure out how to define 'main' grid, or do we just destroy this grid and create a new one for each group

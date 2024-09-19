@@ -34,6 +34,7 @@ func _process(_delta):
 				lastEditKey = cell
 				var oldVal:int = grid.accessCell(cell)
 				grid.accessCell(cell, editValue)
+				grid.zeroRow(3)
 				updateChunk({editValue: null, oldVal:null})
 				var _groups:Array = grid.identifySubGroups()
 				modifyRow(1, grid.Row.new([546], 15, 3), true)
