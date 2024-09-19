@@ -47,33 +47,29 @@ func mergeBinGrids(values:Array) -> Array[int]:
 				binaryGrid[row] |= binGrids[value][row]
 	return binaryGrid
 
-func modifyRow(rowNum:int, newData:Row, preserve:bool = false):
-	if newData.length > blocksPerRow:
-		print("Cannot insert row of length " + String.num_int64(newData.length) + " into row of " + String.num_int64(blocksPerRow))
+func modifyRow(rowNum:int, newData:Row, treat0asNull:bool = false):
+	if newData.length + newData.start > blocksPerRow:
+		print("Cannot insert row of length " + String.num_int64(newData.length + newData.start) + " into row of " + String.num_int64(blocksPerRow))
 		return false
-	if preserve == false:
-		for box in boxesPerRow:
-			rows[rowNum][box] = 0
-			if newData.data.size()-1 <= box:
-				rows[rowNum][box] = newData.data[box]
-	else: #Hard Way
-		var startBox:int = newData.start / blocksPerBox
-		var curIndex:int = newData.start - startBox * blocksPerBox
-		var boxes:int = ceil((newData.length + curIndex) / float(blocksPerBox))
-		var packsInserted:int = 0;
-		for box in boxes:
-			var packsToBeHandlded = min(blocksPerBox - curIndex, newData.length - packsInserted)
-			var mask:int = 0
-			for index in packsToBeHandlded:
-				mask <<= bitsPerBlock
-				mask |= blockMask
-			mask <<= curIndex * bitsPerBlock
-			rows[rowNum][startBox + box] &= ~mask
-			var insert:int = BinUtil.readSection(newData.data, packsToBeHandlded, packsInserted, blockMask, bitsPerBlock)[0]
-			insert = BinUtil.leftShift(insert, curIndex*bitsPerBlock)
-			rows[rowNum][startBox + box] |= insert
-			packsInserted += packsToBeHandlded
-			curIndex = 0
+	var startBox:int = newData.start / blocksPerBox
+	var curIndex:int = newData.start - startBox * blocksPerBox
+	var boxes:int = ceil((newData.length + curIndex) / float(blocksPerBox))
+	var packsInserted:int = 0;
+	for box in boxes:
+		var packsToBeHandled = min(blocksPerBox - curIndex, newData.length - packsInserted)
+		var currentInsertBox = BinUtil.readSection(newData.data, packsToBeHandled, packsInserted, blockMask, bitsPerBlock)[0]
+		var mask:int = 0
+		if treat0asNull:
+			var shiftedMask = blockMask
+			for index in packsToBeHandled:
+				if currentInsertBox & shiftedMask != 0: mask |= shiftedMask
+				shiftedMask <<= bitsPerBlock
+		else: for index in packsToBeHandled: mask = (mask << bitsPerBlock) | blockMask
+		mask <<= curIndex * bitsPerBlock
+		rows[rowNum][startBox + box] &= ~mask
+		rows[rowNum][startBox + box] |= BinUtil.leftShift(currentInsertBox, curIndex * bitsPerBlock)
+		packsInserted += packsToBeHandled
+		curIndex = 0
 	_recacheBinaryRow(rowNum)
 
 func _recacheBinaryRow(rowNum:int):

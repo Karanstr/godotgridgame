@@ -1,12 +1,15 @@
 Todo
 	- Technical Things
+	- - Dynamic Grid resizing
+	- - - Allow Grid to shorten x by masking
+	- - - Allow Grid to shorten y by deleting rows
 	- - Object detection
 	- - - Split objects when they are distinct
 	- - Add (two?) bits of info for everything to specify if it has special data
 	- - - One bit for special data, one bit for whether that special data affects it visually
 	- - - Don't greedy mesh objects with visually distinct special data
 	- - - Way to store/recall special data
-	- - Enhance collision meshing 
+	- - Enhance collision meshing (?)
 	- - - Allow for different collision shapes/meshes
 	- - - Mesh culling to minimize collision objects in scene at once (2d Occlusion cullingish)
 	- - Implement subGridding
@@ -39,6 +42,8 @@ Done
 	-/ Detect distinct (non touching) objects on adjacent faces
 	-/ Refactor entire grid system to simplify loading/saving process
 	-/ Implement many-updating of the grid (without just calling modify a bunch)
+	-/ Allow loading rows with a null space
+
 	
 Links
 	https://www.pixilart.com/draw
