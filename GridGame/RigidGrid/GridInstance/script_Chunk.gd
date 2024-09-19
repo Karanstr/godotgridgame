@@ -34,15 +34,14 @@ func _process(_delta):
 				lastEditKey = cell
 				var oldVal:int = grid.accessCell(cell)
 				grid.accessCell(cell, editValue)
-				grid.zeroRow(3)
 				updateChunk({editValue: null, oldVal:null})
 				var _groups:Array = grid.identifySubGroups()
-				modifyRow(1, grid.Row.new([546], 15, 3), true)
+				alterRow(1, 15, 3, [514], true)
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 
-#row of type grid.Row
-func modifyRow(rowNum:int, row, nullAs0:bool = false):
-	grid.modifyRow(rowNum, row, nullAs0)
+func alterRow(rowNum:int, index:int, numInserts:int, data:Array, nullAs0:bool = false, zero:bool = false):
+	if (zero): grid.zeroRow(rowNum)
+	else: grid.modifyRow(rowNum, index, numInserts, data, nullAs0)
 	updateChunk(BlockTypes.blocks)
 
 #We do not update 0. 0 isn't real.

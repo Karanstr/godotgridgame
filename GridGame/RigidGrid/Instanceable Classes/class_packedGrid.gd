@@ -51,18 +51,17 @@ func cleanBinGrids(values:Dictionary):
 		if (binGrids[value].any(func(r): return r != 0) == false):
 			binGrids.erase(value)
 
-#Don't take data as newRow, take it as 'data, startInsert, blocksToBeInserted' or smthing like that
-func modifyRow(rowNum:int, newData:Row, treat0asNull:bool = false):
-	if newData.length + newData.start > blocksPerRow:
-		print("Cannot insert row of length " + String.num_int64(newData.length + newData.start) + " into row of " + String.num_int64(blocksPerRow))
+func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, treat0asNull:bool = false):
+	if numOfInserts + startingIndex > blocksPerRow:
+		print("Cannot insert row of length " + String.num_int64(numOfInserts + startingIndex) + " into row of " + String.num_int64(blocksPerRow))
 		return false
-	var startBox:int = newData.start / blocksPerBox
-	var curIndex:int = newData.start - startBox * blocksPerBox
-	var boxes:int = ceil((newData.length + curIndex) / float(blocksPerBox))
+	var startBox:int = startingIndex / blocksPerBox
+	var curIndex:int = startingIndex - startBox * blocksPerBox
+	var boxes:int = ceil((numOfInserts + curIndex) / float(blocksPerBox))
 	var packsInserted:int = 0;
 	for box in boxes:
-		var packsToBeHandled = min(blocksPerBox - curIndex, newData.length - packsInserted)
-		var currentInsertBox = BinUtil.readSection(newData.data, packsToBeHandled, packsInserted, blockMask, bitsPerBlock)[0]
+		var packsToBeHandled = min(blocksPerBox - curIndex, numOfInserts - packsInserted)
+		var currentInsertBox = BinUtil.readSection(data, packsToBeHandled, packsInserted, blockMask, bitsPerBlock)[0]
 		var mask:int = 0
 		if treat0asNull:
 			var shiftedMask = blockMask
