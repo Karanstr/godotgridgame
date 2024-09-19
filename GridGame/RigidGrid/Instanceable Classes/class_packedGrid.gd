@@ -47,6 +47,7 @@ func mergeBinGrids(values:Array) -> Array[int]:
 				binaryGrid[row] |= binGrids[value][row]
 	return binaryGrid
 
+#Don't take data as newRow, take it as 'data, startInsert, blocksToBeInserted' or smthing like that
 func modifyRow(rowNum:int, newData:Row, treat0asNull:bool = false):
 	if newData.length + newData.start > blocksPerRow:
 		print("Cannot insert row of length " + String.num_int64(newData.length + newData.start) + " into row of " + String.num_int64(blocksPerRow))
@@ -71,6 +72,12 @@ func modifyRow(rowNum:int, newData:Row, treat0asNull:bool = false):
 		packsInserted += packsToBeHandled
 		curIndex = 0
 	_recacheBinaryRow(rowNum)
+
+func zeroRow(rowNum:int):
+	for box in boxesPerRow:
+		rows[rowNum][box] = 0
+	for grid in binGrids:
+		binGrids[grid][rowNum] = 0
 
 func _recacheBinaryRow(rowNum:int):
 	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
