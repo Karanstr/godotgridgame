@@ -3,7 +3,6 @@ extends Node2D
 @export var editable:bool = true
 
 var grid:packedGrid
-var gridDims:Vector2i
 var blockDims:Vector2
 var chunkCOM:Vector2
 var chunkMass:int = 0
@@ -13,11 +12,11 @@ var pointMasses:Dictionary = {}
 
 var lastEditKey:Vector2i = Vector2i(-1, -1)
 var editValue:int = 1
+var blocksNeedingUpdating:Dictionary = {}
 
 func initialize(blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
-	gridDims = gridDimensions
 	blockDims = blockDimensions
-	grid = packedGrid.new(gridDims.y, gridDims.x)
+	grid = packedGrid.new(gridDimensions.y, gridDimensions.x)
 
 func _input(event):
 	if event is InputEventKey && event.pressed:
@@ -25,6 +24,10 @@ func _input(event):
 			KEY_0: editValue = 0
 			KEY_1: editValue = 1
 			KEY_2: editValue = 2
+			KEY_3:
+				alterDims(null, 10)
+			KEY_4:
+				alterDims(null, 32)
 
 func _process(_delta):
 	if (editable):
@@ -34,15 +37,28 @@ func _process(_delta):
 				lastEditKey = cell
 				var oldVal:int = grid.accessCell(cell)
 				grid.accessCell(cell, editValue)
-				updateChunk({editValue: null, oldVal:null})
-				var _groups:Array = grid.identifySubGroups()
+				blocksNeedingUpdating.get_or_add(oldVal)
+				blocksNeedingUpdating.get_or_add(editValue)
 				alterRow(1, 15, 3, [514], true)
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
+	#After all frame actions, calculate updates
+	if (blocksNeedingUpdating.size() != 0):
+		var _groups:Array = grid.identifySubGroups() #Identify and split groups, add all blocks to the update list
+		updateChunk(blocksNeedingUpdating) #Update chunk and meshes
+		blocksNeedingUpdating = {}
 
 func alterRow(rowNum:int, index:int, numInserts:int, data:Array, nullAs0:bool = false, zero:bool = false):
 	if (zero): grid.zeroRow(rowNum)
 	else: grid.modifyRow(rowNum, index, numInserts, data, nullAs0)
-	updateChunk(BlockTypes.blocks)
+	blocksNeedingUpdating.merge(BlockTypes.blocks)
+
+func alterDims(x, y):
+	if x != grid.blocksPerRow && x != null:
+		grid.changeBlocksPerRow(x)
+		blocksNeedingUpdating.merge(BlockTypes.blocks)
+	if y != grid.rows.size() && y != null:
+		grid.changeNumOfRows(y)
+		blocksNeedingUpdating.merge(BlockTypes.blocks)
 
 #We do not update 0. 0 isn't real.
 func updateChunk(changedVals:Dictionary):
@@ -60,8 +76,7 @@ func updateChunk(changedVals:Dictionary):
 
 func pointToCell(point:Vector2) -> Vector2i:
 	var cell:Vector2i = point/blockDims
-	if (point.x < 0 || cell.x >= gridDims.x || point.y < 0 || cell.y >= gridDims.y):
-		return Vector2i(-1, -1)
+	if (point.x < 0 || cell.x >= grid.blocksPerRow || point.y < 0 || cell.y >= grid.rows.size()): return Vector2i(-1, -1)
 	return cell
 
 #region Mass Management

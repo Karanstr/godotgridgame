@@ -153,26 +153,25 @@ static func greedyRect(binArray:Array) -> Array:
 	var binaryArray = binArray.duplicate()
 	var meshedBoxes:Array = []
 	#Actual meshing
-	while (binaryArray.any(func(r): return r != 0)): #While grid hasn't been fully swept
-		for row in binaryArray.size(): #Search each row
-			var rowData:int = binaryArray[row];
-			if (rowData == 0): #Row is empty
-				continue #Go on to next row
-			else: #At least one mask exists in current row
-				var masks:Array = findMasksInInt(rowData);
-				for maskData in masks: #For each mask found
-					var curMask:int = maskData[0]
-					var box:Rect2i = Rect2i(0,0,0,0)
-					box.position.y = row;
-					box.position.x = maskData[1];
-					box.size.x = maskData[2];
-					for curRowSearching in range(row, binaryArray.size()): #Search each remaining row
-						if (binaryArray[curRowSearching] & curMask == curMask): #Mask exists in row
-							binaryArray[curRowSearching] &= ~curMask; #Eliminate mask from row
-							box.size.y += 1
-						else:
-							break #Mask does not exist in row, shape is complete
-					meshedBoxes.push_back(box);
+	for row in binaryArray.size(): #Search each row
+		var rowData:int = binaryArray[row];
+		if (rowData == 0):
+			continue #Row is empty, go on to next row
+		#else: At least one mask exists in current row
+		var masks:Array = findMasksInInt(rowData);
+		for maskData in masks: #For each mask found
+			var curMask:int = maskData[0]
+			var box:Rect2i = Rect2i(0,0,0,0)
+			box.position.y = row;
+			box.position.x = maskData[1];
+			box.size.x = maskData[2];
+			for curRowSearching in range(row, binaryArray.size()): #Search each remaining row
+				if (binaryArray[curRowSearching] & curMask == curMask): #Mask exists in row
+					binaryArray[curRowSearching] &= ~curMask; #Eliminate mask from row
+					box.size.y += 1
+				else:
+					break #Mask does not exist in row, shape is complete
+			meshedBoxes.push_back(box);
 	return meshedBoxes
 
 #endregion
