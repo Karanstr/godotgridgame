@@ -4,19 +4,17 @@ extends Node2D
 
 var grid:packedGrid
 var blockDims:Vector2
-var chunkCOM:Vector2
-var chunkMass:int = 0
 
 var cachedRects:Dictionary = {}
 var pointMasses:Dictionary = {}
 
 var lastEditKey:Vector2i = Vector2i(-1, -1)
 var editValue:int = 1
-var blocksNeedingUpdating:Dictionary = {}
 
-func initialize(blockDimensions:Vector2, gridDimensions:Vector2i = Vector2i(64,64)):
+func initialize(blockDimensions:Vector2, gridDimensions:Vector2i, hasData = false, gridData:Array = []):
 	blockDims = blockDimensions
-	grid = packedGrid.new(gridDimensions.y, gridDimensions.x)
+	grid = packedGrid.new(gridDimensions.y, gridDimensions.x, hasData, gridData)
+	updateChunk(grid.binGrids)
 
 func _input(event):
 	if event is InputEventKey && event.pressed:
@@ -24,10 +22,6 @@ func _input(event):
 			KEY_0: editValue = 0
 			KEY_1: editValue = 1
 			KEY_2: editValue = 2
-			KEY_3:
-				alterDims(null, 10)
-			KEY_4:
-				alterDims(null, 32)
 
 func _process(_delta):
 	if (editable):
@@ -35,35 +29,16 @@ func _process(_delta):
 			var cell:Vector2i = pointToCell(get_local_mouse_position())
 			if (cell != lastEditKey && cell != Vector2i(-1, -1)):
 				lastEditKey = cell
-				var oldVal:int = grid.accessCell(cell)
 				grid.accessCell(cell, editValue)
-				blocksNeedingUpdating.get_or_add(oldVal)
-				blocksNeedingUpdating.get_or_add(editValue)
-				alterRow(1, 15, 3, [514], true)
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 	#After all frame actions, calculate updates
-	if (blocksNeedingUpdating.size() != 0):
-		var _groups:Array = grid.identifySubGroups() #Identify and split groups, add all blocks to the update list
-		updateChunk(blocksNeedingUpdating) #Update chunk and meshes
-		blocksNeedingUpdating = {}
-
-func alterRow(rowNum:int, index:int, numInserts:int, data:Array, nullAs0:bool = false, zero:bool = false):
-	if (zero): grid.zeroRow(rowNum)
-	else: grid.modifyRow(rowNum, index, numInserts, data, nullAs0)
-	blocksNeedingUpdating.merge(BlockTypes.blocks)
-
-func alterDims(x, y):
-	if x != grid.blocksPerRow && x != null:
-		grid.changeBlocksPerRow(x)
-		blocksNeedingUpdating.merge(BlockTypes.blocks)
-	if y != grid.rows.size() && y != null:
-		grid.changeNumOfRows(y)
-		blocksNeedingUpdating.merge(BlockTypes.blocks)
+	if grid.dirtyBins.size() != 0:
+		var _groups:Array = grid.identifySubGroups() #Maybe do this some other time?
+		updateChunk() #Cleans grid.binGrids and updates meshes/phys objects
 
 #We do not update 0. 0 isn't real.
-func updateChunk(changedVals:Dictionary):
-	changedVals.erase(0)
-	for change in changedVals:
+func updateChunk(changes:Dictionary = grid.dirtyBins):
+	for change in changes:
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
 		cachedRects.erase(change)
@@ -72,7 +47,8 @@ func updateChunk(changedVals:Dictionary):
 			cachedRects[change] = BinUtil.greedyRect(grid.binGrids[change])
 			_addRenderBoxes(change)
 			_addPhysicsBoxes(change)
-	_updateCOM(changedVals)
+	grid.cleanBinGrids()
+	_updateCOM(grid.binGrids)
 
 func pointToCell(point:Vector2) -> Vector2i:
 	var cell:Vector2i = point/blockDims
@@ -83,14 +59,14 @@ func pointToCell(point:Vector2) -> Vector2i:
 
 func _updateCOM(changedVals:Dictionary):
 	var centerOfMass = Vector2(0,0);
-	chunkMass = 0;
+	var chunkMass:int = 0;
 	for blockType in cachedRects.keys():
 		if (changedVals.has(blockType)): pointMasses[blockType] = _reduceToPointMasses(blockType);
-		for point in pointMasses[blockType]:
+		for point in pointMasses.get(blockType, []):
 			centerOfMass += Vector2(point.x * point.z, point.y * point.z)
 			chunkMass += point.z
 	centerOfMass /= Vector2(chunkMass, chunkMass)
-	get_node("../").updateMass(chunkMass, centerOfMass)
+	get_parent().updateMass(chunkMass, centerOfMass)
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):

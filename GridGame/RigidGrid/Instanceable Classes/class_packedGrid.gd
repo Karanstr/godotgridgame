@@ -1,7 +1,7 @@
 class_name packedGrid
 
 #Supposed to be consts but it hates me
-static var bitsPerBlock:int = 4#BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1)
+static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1)
 static var blocksPerBox:int = BinUtil.boxSize/bitsPerBlock
 static var blockMask:int = BinUtil.genMask(1, bitsPerBlock, 1)
 
@@ -11,60 +11,25 @@ var boxesPerRow:int
 var templateArray:Array[int] = []
 var binGrids:Dictionary = {}
 
-func _init(rowCount:int, gridBlocksPerRow:int):
+var dirtyBins:Dictionary = {} #Keep track of which binary grids need to be updated so at the end of a tick
+#the chunk can update them
+
+func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array = []):
 	if gridBlocksPerRow > BinUtil.boxSize: push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
 	blocksPerRow = gridBlocksPerRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
-	for row in rowCount: #Fill grid with null data
-		templateArray.push_back(0)
-		var packedRow:Array[int] = [];
-		for block in boxesPerRow:
-			packedRow.push_back(0)
-		rows.push_back(packedRow) 
-
-#region Meta Grid Editing
-
-#Fix binGrid updating
-func changeBlocksPerRow(newBPR:int):
-	if newBPR > 64 || newBPR < 0: return false
-	var newBoxCount:int = ceili(float(newBPR)/blocksPerBox)
-	if newBoxCount > boxesPerRow:
-		for row in rows:
-			for box in newBoxCount - boxesPerRow: 
-				row.push_back(0)
-	elif newBPR < blocksPerRow:
-		var newBitMask = BinUtil.genMask(1, newBPR, 1) #For updating binGrids
-		var newTrailingIndex:int = newBPR - blocksPerBox * (newBoxCount - 1)
-		var trailingMask:int = BinUtil.genMask(bitsPerBlock, newTrailingIndex, blockMask)
-		for row in rows.size():
-			var newRow:Array[int] = []
-			for box in newBoxCount:
-				newRow.push_back(rows[row][box])
-			newRow[newBoxCount - 1] &= trailingMask
-			rows[row] = newRow
-			for type in binGrids:
-				binGrids[type][row] &= newBitMask
-	blocksPerRow = newBPR
-	boxesPerRow = newBoxCount
-
-#Remember that "Calling array.resize() once and assigning the new values is faster than calling append for every new element."
-func changeNumOfRows(newNor:int):
-	var curNor = rows.size()
-	var rowTemp = []
-	for box in boxesPerRow: 
-		rowTemp.push_back(0)
-	if newNor > curNor:
-		for row in newNor - curNor:
-			templateArray.push_back(0)
-			for grid in binGrids:
-				binGrids[grid].push_back(0)
-			rows.push_back(rowTemp.duplicate())
-	elif newNor < curNor:
-		rows.resize(rows.size() - (1 + curNor - newNor))
-		for grid in binGrids:
-			binGrids[grid].resize(binGrids[grid].size() - (1 + curNor - newNor))
-
-#endregion
+	rows.resize(rowCount)
+	templateArray.resize(rowCount)
+	templateArray.fill(0) #This has to be initialized before I start goofing with the bgrids
+	for row in rowCount:
+		if hasData: 
+			rows[row] = data[row]
+			_recacheBinaryRow(row)
+		else:
+			var packedRow:Array = []
+			packedRow.resize(boxesPerRow)
+			packedRow.fill(0)
+			rows[row] = packedRow
 
 #region Grid Editing
 
@@ -77,10 +42,10 @@ func accessCell(cell:Vector2i, modify:int = -1) -> int:
 		if (modify != 0):
 			var newBinArr = binGrids.get_or_add(modify, templateArray.duplicate())
 			newBinArr[cell.y] |= bitMask
+			dirtyBins[modify] = null
 		if (curVal != 0 && curVal != modify):
 			binGrids[curVal][cell.y] &= ~bitMask
-			if binGrids[curVal][cell.y] == 0:
-				cleanBinGrids({curVal:null})
+			dirtyBins[curVal] = null
 	return curVal
 
 func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, treat0asNull:bool = false):
@@ -109,12 +74,59 @@ func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, trea
 		curIndex = 0
 	_recacheBinaryRow(rowNum)
 
+func removeMaskFromRow(rowNum:int, mask:Array[int]):
+	for box in rows[rowNum]:
+		rows[rowNum][box] &= ~mask[box]
+	_recacheBinaryRow(rowNum)
+
 func zeroRow(rowNum:int):
 	for box in boxesPerRow:
 		rows[rowNum][box] = 0
 	for grid in binGrids:
 		binGrids[grid][rowNum] = 0
-		cleanBinGrids({grid:null})
+		dirtyBins[grid] = null
+
+#endregion
+
+#region Meta Grid Editing
+
+func changeXDim(newBPR:int):
+	if newBPR > 64 || newBPR < 0: return false
+	var newBoxCount:int = ceili(float(newBPR)/blocksPerBox)
+	if newBoxCount > boxesPerRow:
+		for row in rows:
+			for box in newBoxCount - boxesPerRow: 
+				row.push_back(0)
+	elif newBPR < blocksPerRow:
+		var newTrailingIndex:int = newBPR - blocksPerBox * (newBoxCount - 1)
+		var trailingMask:int = BinUtil.genMask(bitsPerBlock, newTrailingIndex, blockMask)
+		for row in rows.size():
+			var newRow:Array[int] = []
+			for box in newBoxCount:
+				newRow.push_back(rows[row][box])
+			newRow[newBoxCount - 1] &= trailingMask
+			rows[row] = newRow
+		dirtyBins.merge(binGrids)
+	blocksPerRow = newBPR
+	boxesPerRow = newBoxCount
+
+#Remember that "Calling array.resize() once and assigning the new values is faster than calling append for every new element."
+func changeYDim(newNor:int):
+	var curNor = rows.size()
+	var rowTemp = []
+	rowTemp.resize(boxesPerRow)
+	rowTemp.fill(0)
+	if newNor > curNor:
+		for row in newNor - curNor:
+			templateArray.push_back(0)
+			for grid in binGrids:
+				binGrids[grid].push_back(0)
+			rows.push_back(rowTemp.duplicate())
+	elif newNor < curNor:
+		rows.resize(rows.size() - (1 + curNor - newNor))
+		for grid in binGrids:
+			binGrids[grid].resize(binGrids[grid].size() - (1 + curNor - newNor))
+			dirtyBins[grid] = null
 
 #endregion
 
@@ -129,18 +141,19 @@ func mergeBinGrids(values:Array) -> Array[int]:
 				binaryGrid[row] |= binGrids[value][row]
 	return binaryGrid
 
-func cleanBinGrids(values:Dictionary):
-	for value in values:
-		if (binGrids[value].any(func(r): return r != 0) == false):
-			binGrids.erase(value)
-
 func _recacheBinaryRow(rowNum:int):
 	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
 	for blockGrid in BlockTypes.blocks:
-		binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
-		binGrids[blockGrid][rowNum] = newRows[blockGrid]
-		cleanBinGrids({blockGrid:null})
-	return true
+		if (newRows[blockGrid] != 0):
+			binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
+			binGrids[blockGrid][rowNum] = newRows[blockGrid]
+			dirtyBins[blockGrid] = null
+
+func cleanBinGrids():
+	for grid in dirtyBins:
+		if (binGrids[grid].any(func(r): return r != 0) == false): 
+			binGrids.erase(grid)
+		dirtyBins.erase(grid)
 
 static func rowToInt(rowData:Array, matchedValues:Dictionary) -> Dictionary:
 	var bitRows:Dictionary = {}
@@ -164,7 +177,7 @@ func identifySubGroups() -> Array:
 	var groups:Array = BinUtil.findGroups(mergedBinArray, rows.size())
 	return groups
 
-static func intToRow(rowData, bitRow:int):
+func intToRow(rowNum, bitRow:int):
 	var row:Array[int] = []
 	var rowMask:Array[int] = [0]
 	var length:int = 0
@@ -181,22 +194,21 @@ static func intToRow(rowData, bitRow:int):
 		if length == 0: start += 1
 		bitRow = BinUtil.rightShift(bitRow, 1)
 		curBlock += 1
-	for box in rowData.size():
-		row.push_back(rowData[box] & rowMask[box])
+	for box in rows[rowNum]:
+		row.push_back(rows[rowNum][box] & rowMask[box])
 	return [row, [start, length]]
 
-static func groupToGrid(group:Array[int]) -> Array:
+func groupToGrid(group:Array[int]) -> Array:
 	var newGrid:Array = []
 	var culledGrid:Array = []
-	var minStart:int = 64
+	var minStart:int = BinUtil.boxSize
 	var maxLength:int = 0
 	for row in group.size():
 		var curRow = intToRow(row, group[row])
 		newGrid.push_back(curRow.data)
 		if curRow[1][0] < minStart: minStart = curRow[1][0]
 		if curRow[1][1] > maxLength: maxLength = curRow[1][1]
-	for row in newGrid:
-		culledGrid.push_back(BinUtil.readSection(row, maxLength, minStart, bitsPerBlock))
+		culledGrid.push_back(BinUtil.readSection(rows[row], maxLength, minStart, bitsPerBlock))
 	return culledGrid
 
 #endregion

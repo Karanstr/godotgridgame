@@ -14,7 +14,7 @@ class Block:
 static var maxBlockIndex = 2;
 
 static var blocks:Dictionary = {
-	1: Block.new("green", preload("res://RigidGrid/Textures/green.png"), true, 1),
+	1: Block.new("blue", preload("res://RigidGrid/Textures/blue.png"), true, 1),
 	2: Block.new("red", preload("res://RigidGrid/Textures/red.png"), true, 2)
 }
 static var solidBlocks:Dictionary = {

@@ -1,8 +1,6 @@
 Todo
 	- Technical Things
-	- - Dynamic Grid resizing
-	- - - Allow Grid to shorten x by masking
-	- - - Allow Grid to shorten y by deleting rows
+	- - Automatic grid expansion when clicking on cell adjacent to grid
 	- - Object detection
 	- - - Split objects when they are distinct
 	- - Add (two?) bits of info for everything to specify if it has special data
@@ -43,7 +41,7 @@ Done
 	-/ Refactor entire grid system to simplify loading/saving process
 	-/ Implement many-updating of the grid (without just calling modify a bunch)
 	-/ Allow loading rows with a null space
-
+	-/ Dynamic Grid resizing
 	
 Links
 	https://www.pixilart.com/draw
