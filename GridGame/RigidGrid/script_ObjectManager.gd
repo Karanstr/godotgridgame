@@ -16,17 +16,23 @@ var rigidGridCount = 0;
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	createRigidGrid("Test", physicsDataDump.new(Vector2(-32, -32)), 
+	createRigidGrid(physicsDataDump.new(Vector2(0,0)), 
 	{"0":[
 		[ #Row 1
-			0b1001 #Boxes
+			0
 		] , [ #Row 2
-			0b0101 #Boxes
+			0
+		], [ #Row 3
+			0
+		], [ #Row 4
+			0
+		], [ #Row 5
+			0b1010101010
 		],
-	]}
-	)
+	]},
+	"World" )
 
-func createRigidGrid(rgName:String, physDump:physicsDataDump, data:Dictionary):
+func createRigidGrid(physDump:physicsDataDump, data:Dictionary, rgName:String = String.num_int64(rigidGridCount)):
 	var newRigidGrid = RigidGrid.instantiate()
 	newRigidGrid.freeze_mode = 1
 	newRigidGrid.freeze = true
@@ -36,6 +42,4 @@ func createRigidGrid(rgName:String, physDump:physicsDataDump, data:Dictionary):
 	newRigidGrid.name = rgName
 	add_child(newRigidGrid)
 	newRigidGrid.initialize(data)
-
-func breakUpRigidGrid(rgName:String):
-	var grid = get_node(rgName)
+	rigidGridCount += 1

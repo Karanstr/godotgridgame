@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var editable:bool = true
+@export var editable:bool = false
 
 var grid:packedGrid
 var blockDims:Vector2
@@ -9,19 +9,22 @@ var cachedRects:Dictionary = {}
 var pointMasses:Dictionary = {}
 
 var lastEditKey:Vector2i = Vector2i(-1, -1)
-var editValue:int = 1
+var editValue:int = 0
+var exile = false
 
 func initialize(blockDimensions:Vector2, gridDimensions:Vector2i, hasData = false, gridData:Array = []):
 	blockDims = blockDimensions
 	grid = packedGrid.new(gridDimensions.y, gridDimensions.x, hasData, gridData)
+	if get_parent().name == "World": editable = true
 	updateChunk(grid.binGrids)
 
 func _input(event):
 	if event is InputEventKey && event.pressed:
 		match event.keycode:
-			KEY_0: editValue = 0
-			KEY_1: editValue = 1
-			KEY_2: editValue = 2
+			KEY_1: editValue = 0
+			KEY_2: editValue = 1
+			KEY_3: editValue = 2
+			KEY_5: exile = true
 
 func _process(_delta):
 	if (editable):
@@ -32,9 +35,19 @@ func _process(_delta):
 				grid.accessCell(cell, editValue)
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 	#After all frame actions, calculate updates
+	if exile:
+		exileGroups()
+		exile = false
 	if grid.dirtyBins.size() != 0:
-		var _groups:Array = grid.identifySubGroups() #Maybe do this some other time?
 		updateChunk() #Cleans grid.binGrids and updates meshes/phys objects
+
+func exileGroups():
+	var groups:Array = grid.identifySubGroups()
+	for group in groups.size()-1:
+		var newGrids = grid.groupToGrid(groups[group])
+		for row in newGrids[0].size():
+			grid.removeMaskFromRow(row, newGrids[0][row])
+		get_parent().exileGroup(newGrids[1][0], cellToPoint(newGrids[1][1]))
 
 #We do not update 0. 0 isn't real.
 func updateChunk(changes:Dictionary = grid.dirtyBins):
@@ -54,6 +67,9 @@ func pointToCell(point:Vector2) -> Vector2i:
 	var cell:Vector2i = point/blockDims
 	if (point.x < 0 || cell.x >= grid.blocksPerRow || point.y < 0 || cell.y >= grid.rows.size()): return Vector2i(-1, -1)
 	return cell
+
+func cellToPoint(cell:Vector2i):
+	return Vector2(cell)*blockDims
 
 #region Mass Management
 

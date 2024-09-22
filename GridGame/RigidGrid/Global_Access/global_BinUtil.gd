@@ -5,6 +5,13 @@ static var boxSize = 64
 
 #region Bit Functions
 
+static func bitCount(number:int):
+	var bits = 0
+	while number != 0:
+		bits += 1
+		number >>= 1
+	return bits
+
 static func bitsToStore(number:int) -> int:
 	if (number == 1):
 		return 1
@@ -237,7 +244,7 @@ static func accessIndex(data:Array[int], index:int, packSize:int, modify:int = 0
 		data[pos.box] += leftShift(modify - curVal, pos.shift)
 	return curVal
 
-static func readSection(array:Array, packs:int, startIndex:int, packMask:int, packSize:int = 1):
+static func readSection(array:Array, packs:int, startIndex:int, packMask:int, packSize:int):
 	var packsPerBox:int = boxSize/packSize
 	var section:Array[int] = [];
 	var pos = getPosition(startIndex, packSize)

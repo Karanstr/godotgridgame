@@ -75,7 +75,7 @@ func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, trea
 	_recacheBinaryRow(rowNum)
 
 func removeMaskFromRow(rowNum:int, mask:Array[int]):
-	for box in rows[rowNum]:
+	for box in rows[rowNum].size():
 		rows[rowNum][box] &= ~mask[box]
 	_recacheBinaryRow(rowNum)
 
@@ -144,10 +144,9 @@ func mergeBinGrids(values:Array) -> Array[int]:
 func _recacheBinaryRow(rowNum:int):
 	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
 	for blockGrid in BlockTypes.blocks:
-		if (newRows[blockGrid] != 0):
-			binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
-			binGrids[blockGrid][rowNum] = newRows[blockGrid]
-			dirtyBins[blockGrid] = null
+		binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
+		binGrids[blockGrid][rowNum] = newRows[blockGrid]
+		dirtyBins[blockGrid] = null
 
 func cleanBinGrids():
 	for grid in dirtyBins:
@@ -194,21 +193,27 @@ func intToRow(rowNum, bitRow:int):
 		if length == 0: start += 1
 		bitRow = BinUtil.rightShift(bitRow, 1)
 		curBlock += 1
-	for box in rows[rowNum]:
+	for box in rows[rowNum].size():
 		row.push_back(rows[rowNum][box] & rowMask[box])
 	return [row, [start, length]]
 
-func groupToGrid(group:Array[int]) -> Array:
+func groupToGrid(group:BinUtil.Group) -> Array:
 	var newGrid:Array = []
 	var culledGrid:Array = []
 	var minStart:int = BinUtil.boxSize
 	var maxLength:int = 0
-	for row in group.size():
-		var curRow = intToRow(row, group[row])
-		newGrid.push_back(curRow.data)
-		if curRow[1][0] < minStart: minStart = curRow[1][0]
-		if curRow[1][1] > maxLength: maxLength = curRow[1][1]
-		culledGrid.push_back(BinUtil.readSection(rows[row], maxLength, minStart, bitsPerBlock))
-	return culledGrid
+	var data = group.binGrid
+	for row in data.size():
+			var curRow = intToRow(row, data[row])
+			newGrid.push_back(curRow[0])
+			if curRow[0].any(func(r): return r != 0):
+				if curRow[1][0] < minStart: minStart = curRow[1][0]
+				if curRow[1][1] > maxLength: maxLength = curRow[1][1]
+	var firstCell = Vector2i(minStart, -1)
+	for row in data.size():
+		if data[row] != 0:
+			if firstCell.y == -1: firstCell.y = row
+			culledGrid.push_back(BinUtil.readSection(rows[row], maxLength, minStart, blockMask, bitsPerBlock))
+	return [newGrid, [culledGrid, firstCell]]
 
 #endregion
