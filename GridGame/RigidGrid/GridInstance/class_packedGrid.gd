@@ -1,14 +1,16 @@
 class_name packedGrid
 
 #Supposed to be consts but it hates me
-static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1)
+static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1) #Must store all blockTypes +  null value
 static var blocksPerBox:int = BinUtil.boxSize/bitsPerBlock
 static var blockMask:int = BinUtil.genMask(1, bitsPerBlock, 1)
 
-var rows:Array = [] #rows.size() is grid.y
-var blocksPerRow:int #grid.x
 var boxesPerRow:int
-var templateArray:Array[int] = []
+var blocksPerRow:int #grid.x
+
+var rows:Array = [] #rows.size() is grid.y
+
+var bgTempArray:Array[int] = [] #Template for the binaryGrids
 var binGrids:Dictionary = {}
 
 var dirtyBins:Dictionary = {} #Keep track of which binary grids need to be updated so at the end of a tick
@@ -19,8 +21,8 @@ func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array 
 	blocksPerRow = gridBlocksPerRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
 	rows.resize(rowCount)
-	templateArray.resize(rowCount)
-	templateArray.fill(0) #This has to be initialized before I start goofing with the bgrids
+	bgTempArray.resize(rowCount)
+	bgTempArray.fill(0) #This has to be initialized before I start goofing with the bgrids
 	for row in rowCount:
 		if hasData: 
 			rows[row] = data[row]
@@ -40,7 +42,7 @@ func accessCell(cell:Vector2i, modify:int = -1) -> int:
 		rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift)
 		var bitMask = 1 << cell.x
 		if (modify != 0):
-			var newBinArr = binGrids.get_or_add(modify, templateArray.duplicate())
+			var newBinArr = binGrids.get_or_add(modify, bgTempArray.duplicate())
 			newBinArr[cell.y] |= bitMask
 			dirtyBins[modify] = null
 		if (curVal != 0 && curVal != modify):
@@ -110,20 +112,20 @@ func changeXDim(newBPR:int):
 	blocksPerRow = newBPR
 	boxesPerRow = newBoxCount
 
-#Remember that "Calling array.resize() once and assigning the new values is faster than calling append for every new element."
 func changeYDim(newNor:int):
 	var curNor = rows.size()
-	var rowTemp = []
-	rowTemp.resize(boxesPerRow)
-	rowTemp.fill(0)
+	rows.resize(newNor)
 	if newNor > curNor:
+		var rowTemp = []
+		rowTemp.resize(boxesPerRow)
+		rowTemp.fill(0)
+		bgTempArray.resize(newNor)
 		for row in newNor - curNor:
-			templateArray.push_back(0)
+			bgTempArray[curNor + row] = 0
 			for grid in binGrids:
 				binGrids[grid].push_back(0)
-			rows.push_back(rowTemp.duplicate())
+			rows[curNor + row] = rowTemp.duplicate()
 	elif newNor < curNor:
-		rows.resize(rows.size() - (1 + curNor - newNor))
 		for grid in binGrids:
 			binGrids[grid].resize(binGrids[grid].size() - (1 + curNor - newNor))
 			dirtyBins[grid] = null
@@ -144,7 +146,7 @@ func mergeBinGrids(values:Array) -> Array[int]:
 func _recacheBinaryRow(rowNum:int):
 	var newRows = rowToInt(rows[rowNum], BlockTypes.blocks)
 	for blockGrid in BlockTypes.blocks:
-		binGrids.get_or_add(blockGrid, templateArray.duplicate()) 
+		binGrids.get_or_add(blockGrid, bgTempArray.duplicate()) 
 		binGrids[blockGrid][rowNum] = newRows[blockGrid]
 		dirtyBins[blockGrid] = null
 

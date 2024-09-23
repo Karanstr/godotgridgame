@@ -32,7 +32,7 @@ func _ready():
 	]},
 	"World" )
 
-func createRigidGrid(physDump:physicsDataDump, data:Dictionary, rgName:String = String.num_int64(rigidGridCount)):
+func createRigidGrid(physDump:physicsDataDump, data:Dictionary = {"0": [[0]]}, rgName:String = String.num_int64(rigidGridCount)):
 	var newRigidGrid = RigidGrid.instantiate()
 	newRigidGrid.freeze_mode = 1
 	newRigidGrid.freeze = true

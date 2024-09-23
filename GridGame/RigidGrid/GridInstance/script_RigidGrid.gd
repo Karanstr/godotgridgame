@@ -35,15 +35,11 @@ func exileGroup(culledGrid:Array, posOffset:Vector2):
 	physStuff.pos += posOffset
 	get_parent().createRigidGrid(physStuff, {"0":culledGrid})
 
-#region Chunk Management
-
 func dumpPhysicsStuff():
 	return ObjectManager.physicsDataDump.new(position, linear_velocity, angular_velocity)
 
 func updateMass(newMass:int, newCOM:Vector2):
 	mass = newMass
 	center_of_mass = newCOM
-
-#endregion
 
 #

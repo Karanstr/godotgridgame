@@ -19,7 +19,7 @@ func initialize(blockDimensions:Vector2, gridDimensions:Vector2i, hasData = fals
 	updateChunk(grid.binGrids)
 
 func _input(event):
-	if event is InputEventKey && event.pressed:
+	if event is InputEventKey && event.pressed && editable:
 		match event.keycode:
 			KEY_1: editValue = 0
 			KEY_2: editValue = 1
