@@ -12,8 +12,8 @@ const chunkScript = preload("script_Chunk.gd")
 
 func createChunk(chunkName:String, hasData:bool = false, data:Array = []):
 	var chunkData = data#.duplicate(true) #Remember to duplicate data because object pointers are funny Unless we don't jkjk unless..
-	var chunk:Node2D = Node2D.new();
-	chunk.set_script(chunkScript);
+	var chunk:Node2D = Node2D.new()
+	chunk.set_script(chunkScript)
 	var blockSize:Vector2 = Vector2(100, 100) #Units
 	var gridSize:Vector2i
 	if (hasData):
@@ -26,9 +26,9 @@ func createChunk(chunkName:String, hasData:bool = false, data:Array = []):
 			elif checkData < blocksInRow && blocksInRow < 0: blocksInRow = checkData
 		blocksInRow = ceil(float(BinUtil.bitCount(blocksInRow)) / packedGrid.bitsPerBlock)
 		gridSize = Vector2i(blocksInRow, rowCount) #Cells
-	chunk.name = chunkName;
+	chunk.name = chunkName
 	add_child(chunk)
-	chunk.initialize(blockSize, gridSize, hasData, chunkData);
+	chunk.initialize(blockSize, gridSize, hasData, chunkData)
 
 func exileGroup(culledGrid:Array, posOffset:Vector2):
 	var physStuff = dumpPhysicsStuff()

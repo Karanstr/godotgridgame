@@ -45,24 +45,25 @@ func _process(_delta):
 
 func exileGroups():
 	var groups:Array = grid.identifySubGroups()
-	for group in groups.size()-1:
+	for group in groups.size()-1: #Keep the bottom grid bc I need to decide somehow and this lets things fall
 		var newGrids = grid.groupToGrid(groups[group])
 		for row in newGrids[0].size():
 			grid.removeMaskFromRow(row, newGrids[0][row])
 		get_parent().exileGroup(newGrids[1][0], cellToPoint(newGrids[1][1]))
 
 #We do not update 0. 0 isn't real.
-func updateChunk(changes:Dictionary = grid.dirtyBins):
+func updateChunk(blocksChanged:Dictionary = grid.dirtyBins):
+	var changes = blocksChanged.duplicate()
+	grid.cleanBinGrids() #Clean up removed binGrids
 	for change in changes:
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
 		cachedRects.erase(change)
 		pointMasses.erase(change)
-		if grid.binGrids.has(change):
+		if grid.binGrids.has(change): #If value still exists in binGrids
 			cachedRects[change] = BinUtil.greedyRect(grid.binGrids[change])
 			_addRenderBoxes(change)
 			_addPhysicsBoxes(change)
-	grid.cleanBinGrids()
 	_updateCOM(grid.binGrids)
 
 func pointToCell(point:Vector2) -> Vector2i:
@@ -76,10 +77,10 @@ func cellToPoint(cell:Vector2i):
 #region Mass Management
 
 func _updateCOM(changedVals:Dictionary):
-	var centerOfMass = Vector2(0,0);
-	var chunkMass:int = 0;
+	var centerOfMass = Vector2(0,0)
+	var chunkMass:int = 0
 	for blockType in cachedRects.keys():
-		if (changedVals.has(blockType)): pointMasses[blockType] = _reduceToPointMasses(blockType);
+		if (changedVals.has(blockType)): pointMasses[blockType] = _reduceToPointMasses(blockType)
 		for point in pointMasses.get(blockType, []):
 			centerOfMass += Vector2(point.x * point.z, point.y * point.z)
 			chunkMass += point.z
@@ -88,7 +89,7 @@ func _updateCOM(changedVals:Dictionary):
 	return centerOfMass
 
 func _reduceToPointMasses(blockType:int):
-	var blockPointMasses:Array = [];
+	var blockPointMasses:Array = []
 	for recti in cachedRects[blockType]:
 		var blockWeight = BlockTypes.blocks[blockType].weight
 		if (blockWeight != 0):
@@ -107,7 +108,7 @@ func _rectToPointMass(recti:Rect2i, weightPerBlock:int):
 #region Render&Physics Management
 
 func _addRenderBoxes(blockType):
-	var image = BlockTypes.blocks[blockType].texture;
+	var image = BlockTypes.blocks[blockType].texture
 	for rectNum in cachedRects.get(blockType, []).size():
 		var rect = cachedRects[blockType][rectNum]
 		var polygon = _makeRenderPolygon(rect, image)
@@ -122,7 +123,7 @@ func _addPhysicsBoxes(blockType:int):
 	if (BlockTypes.blocks[blockType].collision == true):
 		for rectNum in cachedRects.get(blockType, []).size():
 			var rect = cachedRects[blockType][rectNum]
-			var colBox:CollisionShape2D = _makeColBox(rect);
+			var colBox:CollisionShape2D = _makeColBox(rect)
 			colBox.name = _encodeName(rectNum, blockType)
 			add_sibling(colBox)
 
@@ -137,24 +138,24 @@ func _encodeName(number, blockType) -> String:
 	return name + " " + String.num_int64((number << grid.bitsPerBlock) + blockType)
 
 func _makeRenderPolygon(recti, texture) -> Polygon2D:
-	var rect = _rectiToRect(recti);
-	var data:PackedVector2Array = PackedVector2Array();
-	data.push_back(rect.position);
-	data.push_back(Vector2(rect.position.x, rect.position.y + rect.size.y));
-	data.push_back(rect.position + rect.size);
-	data.push_back(Vector2(rect.position.x + rect.size.x, rect.position.y));
-	var polygon = Polygon2D.new();
-	polygon.polygon = data;
-	polygon.texture = texture;
+	var rect = _rectiToRect(recti)
+	var data:PackedVector2Array = PackedVector2Array()
+	data.push_back(rect.position)
+	data.push_back(Vector2(rect.position.x, rect.position.y + rect.size.y))
+	data.push_back(rect.position + rect.size)
+	data.push_back(Vector2(rect.position.x + rect.size.x, rect.position.y))
+	var polygon = Polygon2D.new()
+	polygon.polygon = data
+	polygon.texture = texture
 	polygon.texture_scale = texture.get_size()/blockDims
 	return polygon
 
 func _makeColBox(recti:Rect2i) -> CollisionShape2D:
-	var rect = _rectiToRect(recti);
-	var colShape = CollisionShape2D.new();
-	colShape.shape = RectangleShape2D.new();
-	colShape.position = rect.position + rect.size/2;
-	colShape.shape.size = rect.size;
+	var rect = _rectiToRect(recti)
+	var colShape = CollisionShape2D.new()
+	colShape.shape = RectangleShape2D.new()
+	colShape.position = rect.position + rect.size/2
+	colShape.shape.size = rect.size
 	return colShape
 
 func _rectiToRect(recti:Rect2i) -> Rect2:
