@@ -25,6 +25,8 @@ func _input(event):
 			KEY_2: editValue = 1
 			KEY_3: editValue = 2
 			KEY_5: exile = true
+			KEY_6: grid.changeYDim(7)
+			KEY_7: grid.changeYDim(3)
 
 func _process(_delta):
 	if (editable):

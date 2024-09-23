@@ -115,11 +115,11 @@ func changeXDim(newBPR:int):
 func changeYDim(newNor:int):
 	var curNor = rows.size()
 	rows.resize(newNor)
+	bgTempArray.resize(newNor)
 	if newNor > curNor:
 		var rowTemp = []
 		rowTemp.resize(boxesPerRow)
 		rowTemp.fill(0)
-		bgTempArray.resize(newNor)
 		for row in newNor - curNor:
 			bgTempArray[curNor + row] = 0
 			for grid in binGrids:
@@ -127,7 +127,7 @@ func changeYDim(newNor:int):
 			rows[curNor + row] = rowTemp.duplicate()
 	elif newNor < curNor:
 		for grid in binGrids:
-			binGrids[grid].resize(binGrids[grid].size() - (1 + curNor - newNor))
+			binGrids[grid].resize(newNor)
 			dirtyBins[grid] = null
 
 #endregion
