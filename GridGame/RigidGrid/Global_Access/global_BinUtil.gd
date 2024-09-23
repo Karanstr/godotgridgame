@@ -188,7 +188,7 @@ static func greedyRect(binArray:Array) -> Array:
 
 #region binArray Handling Functions
 
-class fixedPackedArray:
+class fixedPackedArray: #Stores data packed at a set number of bits within integers (boxes). Data does not transcend boxes (boxes don't do partial data)
 	var array:Array[int] = []
 	var totalPacks:int
 	var packSize:int
@@ -205,16 +205,16 @@ class fixedPackedArray:
 			array.push_back(0)
 
 static func packArray(array:Array[int]):
-	if array.min() < 0:
+	if array.min() < 0: #Negative numbers are all silly with their bits
 		print("Packing negative numbers, how silly")
 		return "NOPE"
-	var packedArray = fixedPackedArray.new(array.size(), bitsToStore(array.max()))
+	var packedArray = fixedPackedArray.new(array.size(), bitsToStore(array.max())) #Get all my helper variables set up
 	var curPack = 0
 	for box in packedArray.totalBoxes:
 		for pack in packedArray.packsPerBox:
-			packedArray.array[box] |= array[box*packedArray.packsPerBox + pack] << pack*packedArray.packSize
+			packedArray.array[box] |= array[box*packedArray.packsPerBox + pack] << pack*packedArray.packSize #Shift the data to it's index and mask it in
 			curPack += 1 
-			if (curPack >= packedArray.totalPacks): break
+			if (curPack >= packedArray.totalPacks): break #If we've packed all data, don't keep going, we don't need to fill the box
 	return packedArray
 
 static func unpackArray(packedArray:fixedPackedArray):
@@ -222,12 +222,12 @@ static func unpackArray(packedArray:fixedPackedArray):
 	var curPack = 0
 	for box in packedArray.totalBoxes:
 		for pack in packedArray.packsPerBox:
-			unpackedArray.push_back(rightShift(packedArray.array[box], pack*packedArray.packSize) & packedArray.packMask)
+			unpackedArray.push_back(rightShift(packedArray.array[box], pack*packedArray.packSize) & packedArray.packMask) #Shift the data back and mask it out
 			curPack += 1 
-			if (curPack >= packedArray.totalPacks): break
+			if (curPack >= packedArray.totalPacks): break #If we've read all the data, don't keep unpacking the empty box
 	return unpackedArray
 
-class Address:
+class Address: #Data class
 	var box:int
 	var shift:int
 	func _init(boxNum:int, padding:int):
@@ -236,30 +236,31 @@ class Address:
 
 static func getPosition(index, packSize:int = 1):
 	var packsPerBox:int = boxSize/packSize
-	var boxNum = index/packsPerBox
-	var padding = (index - boxNum*packsPerBox)*packSize
+	var boxNum = index/packsPerBox #Integer division trunc()s
+	var padding = (index - boxNum*packsPerBox)*packSize #Figure out how many bits are between the start of the box and my index
 	return Address.new(boxNum, padding)
 
 static func accessIndex(data:Array[int], index:int, packSize:int, modify:int = 0):
 	var pos = getPosition(index, packSize)
-	var curVal = rightShift(data[pos.box], pos.shift) & genMask(packSize, 1, 1)
+	var curVal = rightShift(data[pos.box], pos.shift) & genMask(packSize, 1, 1) #Shift the data over and mask it out
 	if (modify != 0):
-		data[pos.box] += leftShift(modify - curVal, pos.shift)
+		data[pos.box] += leftShift(modify - curVal, pos.shift) #Funny trick to change value quickly
 	return curVal
 
-static func readSection(array:Array, packs:int, startIndex:int, packMask:int, packSize:int):
+static func readSection(array:Array, packs:int, startIndex:int, packSize:int):
+	var packMask = genMask(packSize, 1, 1)
 	var packsPerBox:int = boxSize/packSize
 	var section:Array[int] = []
 	var pos = getPosition(startIndex, packSize)
 	var remPacksInCurBox:int = (boxSize - pos.shift)/packSize
 	while packs > 0:
-		var rightSideMask:int = genMask(packSize, min(remPacksInCurBox, packs), packMask)
-		var packsInNextBox = min(boxSize, packs) - remPacksInCurBox
-		var leftSideMask:int = genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0
-		var rightSide = rightShift(array[pos.box], pos.shift) & rightSideMask
-		var leftSide = leftShift(array[pos.box+1] & leftSideMask, remPacksInCurBox * packSize) if (remPacksInCurBox < packs) else 0
-		section.push_back(rightSide | leftSide)
-		packs -= packsPerBox
+		var rightSideMask:int = genMask(packSize, min(remPacksInCurBox, packs), packMask) #Mask for the packs in the current box
+		var packsInNextBox = min(boxSize, packs) - remPacksInCurBox #Do I need to concat two boxes together?
+		var leftSideMask:int = genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0 #Mask for the next box (if needed else 0)
+		var rightSide = rightShift(array[pos.box], pos.shift) & rightSideMask #Data from current box
+		var leftSide = leftShift(array[pos.box+1] & leftSideMask, remPacksInCurBox * packSize) if leftSideMask != 0 else 0 #Data from next box (if needed else 0)
+		section.push_back(rightSide | leftSide) #Combine the data
+		packs -= packsPerBox #Mark those packs as handled
 		pos.box += 1
 		remPacksInCurBox = boxSize - packsInNextBox
 	return section
