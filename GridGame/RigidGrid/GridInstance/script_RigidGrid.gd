@@ -30,9 +30,9 @@ func createChunk(chunkName:String, hasData:bool = false, data:Array = []):
 	add_child(chunk)
 	chunk.initialize(blockSize, gridSize, hasData, chunkData)
 
-func exileGroup(culledGrid:Array, posOffset:Vector2):
+func exileGroup(culledGrid:Array, topLeftCorner:Vector2):
 	var physStuff = dumpPhysicsStuff()
-	physStuff.pos += posOffset
+	physStuff.pos += topLeftCorner
 	get_parent().createRigidGrid(physStuff, {"0":culledGrid})
 
 func dumpPhysicsStuff():

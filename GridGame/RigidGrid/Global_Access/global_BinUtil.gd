@@ -54,7 +54,6 @@ static func cellToKey(cell:Vector2i, rowSize:int) -> int:
 
 #region Mask Functions 
 
-
 static func genMask(bits:int) -> int:
 	var mask = 0
 	for bit in bits:
@@ -137,9 +136,38 @@ static func checkIndexesForNon0(array:Array[int], startingIndex:int, endingIndex
 class Group: #Data class
 	var blockCount:int
 	var binGrid:Array[int]
+	var grid:Array = [] 
+	var fittedGrid:Array = []
+	var topLeftCell:Vector2i = Vector2i(-1, -1)
+	
 	func _init(data:Array[int], blocks:int):
 		binGrid = data
 		blockCount = blocks
+		grid.resize(binGrid.size())
+	
+	func convertBinGridToGrid(referenceGrid:Array):
+		var minStart:int = packedGrid.blocksPerBox + 1
+		var endIndex:int = 0
+		for row in referenceGrid.size():
+			var rowData = BinUtil.intToPackedArray(referenceGrid[row], binGrid[row])
+			grid[row] = rowData[0]
+			if binGrid[row] != 0:
+				if rowData[1][0] < minStart: 
+					minStart = rowData[1][0]
+				if rowData[1][1] + rowData[1][0] > endIndex: 
+					endIndex = rowData[1][1] + rowData[1][0]
+		topLeftCell.x = minStart
+		return [minStart, endIndex - minStart]
+	
+	func copyGridToGroup(referenceGrid:Array):
+		var fittedGridInfo:Array = convertBinGridToGrid(referenceGrid)
+		for row in binGrid.size():
+			if binGrid[row] != 0:
+				if topLeftCell.y == -1:
+					topLeftCell.y = row
+				fittedGrid.push_back(BinUtil.readSection(grid[row], fittedGridInfo[1], fittedGridInfo[0], packedGrid.bitsPerBlock))
+			elif topLeftCell.y != -1:
+				break #If an entire row is null, we know the object can't extend through it and are done
 
 static func findGroups(binArray:Array[int], numOfRows:int):
 	var binaryArray = binArray.duplicate()
@@ -281,6 +309,41 @@ static func readSection(array:Array, packs:int, startIndex:int, packSize:int):
 		pos.box += 1
 		remPacksInCurBox = boxSize - packsInNextBox
 	return section
+
+static func intToPackedArray(mirrorPackedArray:Array, bitRow:int):
+	var row:Array[int] = []
+	var rowMask:Array[int] = [0]
+	var length:int = 0
+	var start:int = 0
+	var curBlock:int = 0
+	var curBox:int = 0
+	while bitRow != 0:
+		if (curBlock == packedGrid.blocksPerBox): #Yeah I could do this with division instead of two variables, shut up this is better
+			curBlock = 0
+			curBox += 1
+			rowMask.push_back(0)
+		if bitRow & 1: rowMask[curBox] |= packedGrid.blockMask << curBlock * packedGrid.bitsPerBlock #Put in the blockMask on the current block
+		if bitRow & 1 || length != 0: length += 1 #If current block is set, we've found a block which is set
+		if length == 0: start += 1 #If current block isn't set but there was already at least one set block, this unset block is sandwiched by set ones
+		bitRow = BinUtil.rightShift(bitRow, 1)
+		curBlock += 1
+	for box in mirrorPackedArray.size():
+		row.push_back(mirrorPackedArray[box] & rowMask[box])
+	return [row, [start, length]] #Preserve start and length for grid culling later
+
+static func packedArrayToInt(packedArray:Array, matchedValues:Dictionary) -> Dictionary:
+	var bitRows:Dictionary = {}
+	for block in matchedValues: 
+		bitRows[block] =  0
+	var curMask = 1
+	var row = packedArray.duplicate()
+	for box in row.size():
+		for block in packedGrid.blocksPerBox:
+			var curVal:int = row[box] & packedGrid.blockMask
+			row[box] = BinUtil.rightShift(row[box], packedGrid.bitsPerBlock)
+			if matchedValues.has(curVal): bitRows[curVal] |= curMask
+			if (curMask > 0): curMask <<= 1 #Stop from shifting negative number on the last check of a 64 block row (bc godot is stupid)
+	return bitRows
 
 #endregion
 

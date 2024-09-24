@@ -13,7 +13,7 @@ var rows:Array = [] #rows.size() is grid.y
 var bgTempArray:Array[int] = [] #Template for the binaryGrids
 var binGrids:Dictionary = {}
 
-var changedBGrids:Dictionary = {} #Keep track of which blockTypes the chunk needs to update, assume potentiallyEmptyBGrids is a subset of this set
+var changedBGrids:Dictionary = {} #Keep track of which blockTypes the chunk needs to update, potentiallyEmptyBGrids is a subset of this set and should be .merged() whenever it is used
 var potentiallyEmptyBGrids:Dictionary = {} #Keep track of bgrids which may need to be culled
 
 
@@ -39,18 +39,19 @@ func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array 
 #Used for reading and writing to cells
 func accessCell(cell:Vector2i, modify:int = -1) -> int:
 	var pos = BinUtil.getPosition(cell.x, bitsPerBlock)
-	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask #Shift out current value of cell
+	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
 	if (modify != -1):
 		rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift) #Funny trick to modify value easily
 		var bitMask = 1 << cell.x
-		if (modify != 0): #0 is a null value so we don't do this
-			binGrids.get_or_add(modify, bgTempArray.duplicate())[cell.y] |= bitMask #Get current bGrid or make a new one
+		if (modify != 0): #0 is our null value so we don't keep a binaryGrid to track it
+			binGrids.get_or_add(modify, bgTempArray.duplicate())[cell.y] |= bitMask
 			changedBGrids[modify] = null
-		if (curVal != 0 && curVal != modify): #We still don't update 0
+		if (curVal != 0 && curVal != modify): #Same reasoning as above
 			binGrids[curVal][cell.y] &= ~bitMask
-			potentiallyEmptyBGrids[curVal] = null #Note that this may have made the bGrid empty
+			potentiallyEmptyBGrids[curVal] = null
 	return curVal
 
+#Used for loading
 func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, treat0asNull:bool = false):
 	if numOfInserts + startingIndex > blocksPerRow: #Sanity check to make sure we aren't trying to import data outside of row
 		print("Cannot insert row of length " + String.num_int64(numOfInserts + startingIndex) + " into row of " + String.num_int64(blocksPerRow))
@@ -60,41 +61,36 @@ func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, trea
 	var boxes:int = ceil((numOfInserts + curIndex) / float(blocksPerBox))
 	var packsInserted:int = 0
 	for box in boxes:
-		var packsThisPass = min(blocksPerBox - curIndex, numOfInserts - packsInserted) #Number of packs(blocks) we insert in this pass
-		var currentInsertBox = BinUtil.readSection(data, packsThisPass, packsInserted, bitsPerBlock)[0]
+		var packsInsertingThisPass = min(blocksPerBox - curIndex, numOfInserts - packsInserted)
+		var currentInsertBox = BinUtil.readSection(data, packsInsertingThisPass, packsInserted, bitsPerBlock)[0]
 		var mask:int
-		if treat0asNull: #If we want to preserve pre-existing data over any 0 (null) block
+		if treat0asNull: #If we want to preserve pre-existing data inside our write region instead of overwriting it with our null value
 			mask = 0
 			var shiftedMask = blockMask
-			for index in packsThisPass:
+			for index in packsInsertingThisPass:
 				if currentInsertBox & shiftedMask != 0: mask |= shiftedMask
 				shiftedMask <<= bitsPerBlock
-		else: mask = BinUtil.repMask(bitsPerBlock, packsThisPass, blockMask) #If we want to overwrite the data with the null block
-		mask <<= curIndex * bitsPerBlock #Move the mask to the right place (only relevant for first box)
+		else: #If we want to overwrite the data with our null value
+			mask = BinUtil.repMask(bitsPerBlock, packsInsertingThisPass, blockMask) 
+		mask <<= curIndex * bitsPerBlock #Only relevant for first box
 		rows[rowNum][startBox + box] &= ~mask #Remove old data
 		rows[rowNum][startBox + box] |= BinUtil.leftShift(currentInsertBox, curIndex * bitsPerBlock) #Insert new data
-		packsInserted += packsThisPass
+		packsInserted += packsInsertingThisPass
 		curIndex = 0
-	_recacheBinaryRow(rowNum) #The row has changed and it's faster to just update the whole thing
-
-func removeMaskFromRow(rowNum:int, mask:Array[int]):
-	for box in rows[rowNum].size():
-		rows[rowNum][box] &= ~mask[box]
 	_recacheBinaryRow(rowNum)
 
-func zeroRow(rowNum:int):
-	for box in boxesPerRow:
-		rows[rowNum][box] = 0
-	for grid in binGrids:
-		binGrids[grid][rowNum] = 0
-		potentiallyEmptyBGrids[grid] = null #We may have made the bGrid empty, so mark it as such
+func subtractGrid(gridArray:Array):
+	for row in rows.size():
+		for box in rows[row].size():
+			rows[row][box] &= ~gridArray[row][box]
+		_recacheBinaryRow(row)
 
 #endregion
 
 #region Meta Grid Editing
 
 #Gotta do this one
-func findUselessRows(side:bool): #If side == false start at bottom (row 0), if side == true start at top (row rows.size()-1)
+func _findUselessRows(side:bool): #If side == false start at bottom (row 0), if side == true start at top (row rows.size()-1)
 	pass
 
 func changeXDim(newBPR:int):
@@ -139,7 +135,7 @@ func changeYDim(newNor:int):
 
 #region Binary Grid Management
 
-func mergeBinGrids(values:Dictionary) -> Array[int]:
+func _mergeBinGrids(values:Dictionary) -> Array[int]:
 	var binaryGrid:Array[int] = []
 	for row in rows.size():
 		binaryGrid.push_back(0)
@@ -150,7 +146,7 @@ func mergeBinGrids(values:Dictionary) -> Array[int]:
 
 #This function hurts a bit bc it has to loop through all blockTypes
 func _recacheBinaryRow(rowNum:int):
-	var newRows:Dictionary = rowToInt(rows[rowNum], BlockTypes.blocks)
+	var newRows:Dictionary = BinUtil.packedArrayToInt(rows[rowNum], BlockTypes.blocks)
 	for blockGrid in newRows:
 		if newRows[blockGrid] != 0:
 			binGrids.get_or_add(blockGrid, bgTempArray.duplicate())
@@ -167,70 +163,13 @@ func removeEmptyBGrids():
 			binGrids.erase(grid)
 		potentiallyEmptyBGrids.erase(grid)
 
-static func rowToInt(rowData:Array, matchedValues:Dictionary) -> Dictionary:
-	var bitRows:Dictionary = {}
-	for block in matchedValues: 
-		bitRows[block] =  0
-	var curMask = 1
-	var row = rowData.duplicate()
-	for box in rowData.size():
-		for block in blocksPerBox:
-			var curVal:int = row[box] & blockMask
-			row[box] = BinUtil.rightShift(row[box], bitsPerBlock)
-			if matchedValues.has(curVal): bitRows[curVal] |= curMask
-			if (curMask > 0): curMask <<= 1 #Stop from shifting negative number on the last check of a 64 block row (bc godot is stupid)
-	return bitRows
-
 #endregion
 
 #region Loading & Splitting
 
 func identifySubGroups() -> Array:
-	var mergedBinGrid = mergeBinGrids(binGrids)
+	var mergedBinGrid = _mergeBinGrids(binGrids)
 	var groups:Array = BinUtil.findGroups(mergedBinGrid, rows.size())
 	return groups
-
-func intToRow(rowNum, bitRow:int):
-	var row:Array[int] = []
-	var rowMask:Array[int] = [0]
-	var length:int = 0
-	var start:int = 0
-	var curBlock:int = 0
-	var curBox:int = 0
-	while bitRow != 0:
-		if (curBlock == blocksPerBox): #Yeah I could do this with division instead of two variables, shut up this is better
-			curBlock = 0
-			curBox += 1
-			rowMask.push_back(0)
-		if bitRow & 1: rowMask[curBox] |= blockMask << curBlock*bitsPerBlock #Put in the blockMask on the current block
-		if bitRow & 1 || length != 0: length += 1 #If current block is set, we've found a block which is set
-		if length == 0: start += 1 #If current block isn't set but there was already at least one set block, this unset block is sandwiched by set ones
-		bitRow = BinUtil.rightShift(bitRow, 1)
-		curBlock += 1
-	for box in rows[rowNum].size():
-		row.push_back(rows[rowNum][box] & rowMask[box])
-	return [row, [start, length]] #Preserve start and length for grid culling later
-
-func groupToGrid(group:BinUtil.Group) -> Array:
-	var newGrid:Array = []
-	var culledGrid:Array = []
-	var minStart:int = BinUtil.boxSize
-	var maxLength:int = 0
-	var data = group.binGrid
-	for row in data.size():
-		var curRow = intToRow(row, data[row])
-		newGrid.push_back(curRow[0])
-		if data[row] != 0: #If the row isn't 0
-			if curRow[1][0] < minStart: minStart = curRow[1][0]
-			if curRow[1][1] > maxLength: maxLength = curRow[1][1]
-	var firstCell = Vector2i(minStart, -1) #Top left corner of culled grid
-	for row in data.size(): #find y of firstCell
-		if data[row] != 0:
-			if firstCell.y == -1: firstCell.y = row
-			print(BinUtil.readSection(rows[row], maxLength, minStart, bitsPerBlock))
-			culledGrid.push_back(BinUtil.readSection(rows[row], maxLength, minStart, bitsPerBlock))
-		elif firstCell.y != -1: #Once we've started tracking the object
-			break #If an entire row is null, we know the object can't extend through it
-	return [newGrid, [culledGrid, firstCell]]
 
 #endregion

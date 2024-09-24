@@ -36,19 +36,11 @@ func _process(_delta):
 		elif Input.is_action_just_released("click"): lastEditKey = Vector2i(-1, -1)
 	#After all frame actions, calculate updates
 	if exile:
-		exileGroups()
+		findAndExileGroups()
 		exile = false
 	var blocksNeedingUpdates = grid.changedBGrids.merged(grid.potentiallyEmptyBGrids)
 	if blocksNeedingUpdates.is_empty() == false:
 		updateChunk(blocksNeedingUpdates) #Removes empty grid.binGrids and updates meshes/phys objects
-
-func exileGroups():
-	var groups:Array = grid.identifySubGroups()
-	for group in groups.size()-1: #Keep the bottom grid bc I need to decide somehow and this lets things fall
-		var newGrids = grid.groupToGrid(groups[group])
-		for row in newGrids[0].size():
-			grid.removeMaskFromRow(row, newGrids[0][row])
-		get_parent().exileGroup(newGrids[1][0], cellToPoint(newGrids[1][1]))
 
 #We do not update 0. 0 isn't real.
 func updateChunk(changedBlocks:Dictionary):
@@ -64,9 +56,21 @@ func updateChunk(changedBlocks:Dictionary):
 			_addPhysicsBoxes(change)
 	_updateCOM(grid.binGrids)
 
+func findAndExileGroups():
+	var parent = get_parent()
+	var groups:Array = grid.identifySubGroups()
+	for group in groups.size()-1: #Keep the bottom grid bc I need to decide somehow and this lets things fall
+		var curGroup = groups[group]
+		curGroup.copyGridToGroup(grid.rows)
+		grid.subtractGrid(curGroup.grid)
+		parent.exileGroup(curGroup.fittedGrid, Vector2(curGroup.topLeftCell) * blockDims)
+
 func pointToCell(point:Vector2) -> Vector2i:
 	var cell:Vector2i = point/blockDims
-	if (point.x < 0 || cell.x >= grid.blocksPerRow || point.y < 0 || cell.y >= grid.rows.size()): return Vector2i(-1, -1)
+	if point.x < 0:
+		cell.x -= 1
+	if point.y < 0:
+		cell.y -= 1 
 	return cell
 
 func cellToPoint(cell:Vector2i):
