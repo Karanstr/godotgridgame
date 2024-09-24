@@ -44,6 +44,7 @@ func accessCell(cell:Vector2i, modify:int = -1) -> int:
 		var bitMask = 1 << cell.x
 		if (modify != 0): #0 is a null value so we don't do this
 			binGrids.get_or_add(modify, bgTempArray.duplicate())[cell.y] |= bitMask #Get current bGrid or make a new one
+			dirtyBins[modify] = null #This is stupid but dirtyBins is how chunks know which blockTypes to update, find a better solution
 		if (curVal != 0 && curVal != modify): #We still don't update 0
 			binGrids[curVal][cell.y] &= ~bitMask
 			dirtyBins[curVal] = null #Note that this may have made the bGrid empty
@@ -59,7 +60,7 @@ func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, trea
 	var packsInserted:int = 0
 	for box in boxes:
 		var packsThisPass = min(blocksPerBox - curIndex, numOfInserts - packsInserted) #Number of packs(blocks) we insert in this pass
-		var currentInsertBox = BinUtil.readSection(data, packsThisPass, packsInserted, blockMask, bitsPerBlock)[0]
+		var currentInsertBox = BinUtil.readSection(data, packsThisPass, packsInserted, bitsPerBlock)[0]
 		var mask:int
 		if treat0asNull: #If we want to preserve pre-existing data over any 0 (null) block
 			mask = 0
@@ -218,7 +219,7 @@ func groupToGrid(group:BinUtil.Group) -> Array:
 	for row in data.size(): #find y of firstCell
 		if data[row] != 0:
 			if firstCell.y == -1: firstCell.y = row
-			culledGrid.push_back(BinUtil.readSection(rows[row], maxLength, minStart, blockMask, bitsPerBlock))
+			culledGrid.push_back(BinUtil.readSection(rows[row], maxLength, minStart, bitsPerBlock))
 		else:
 			break #If an entire row is null, we know the object can't extend through it
 	return [newGrid, [culledGrid, firstCell]]
