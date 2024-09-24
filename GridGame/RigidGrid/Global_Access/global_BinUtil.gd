@@ -54,12 +54,19 @@ static func cellToKey(cell:Vector2i, rowSize:int) -> int:
 
 #region Mask Functions 
 
-#The inputs to genMask keep screwing me over, so expect them to maybe change
-static func genMask(packSize:int, numOfPacks:int, instanceMask:int) -> int:
-	var mask:int = 0
-	for pack in numOfPacks:
-		mask = (mask << packSize) | instanceMask
+
+static func genMask(bits:int) -> int:
+	var mask = 0
+	for bit in bits:
+		mask = (mask << 1) | 1
 	return mask
+
+#This function really really messed with me so I split it into it and the one above it
+static func repMask(packSize:int, repetitions:int, mask:int) -> int:
+	var newMask:int = 0
+	for rep in repetitions:
+		newMask = (newMask << packSize) | mask
+	return newMask
 
 #These three funcs are very similar, maybe can be merged/rewritten?
 static func findMasksInInt(num:int) -> Array:
@@ -112,11 +119,20 @@ static func extendMask(num:int, mask:int):
 
 #region binArray Deriving Functions
 
-static func makeNextChecks(mask:int, rowNum:int, maxRow:int):
-	return [
-	false if rowNum + 1 == maxRow else Vector2i(mask, rowNum + 1),
-	false if rowNum - 1 == -1 else Vector2i(mask, rowNum - 1)
-	]
+static func makeNextChecks(mask:int, rowNum:int, lowerBound:int, upperBound:int):
+	if mask == 0: return []
+	var checks = []
+	if rowNum - 1 >= lowerBound: checks.push_back(Vector2i(mask, rowNum - 1)) #Check down a row
+	#This logic looks weird, it's because arrays are 0 indexed but .size() isn't and I don't wanna subtract 1 from upperbound on each call
+	if rowNum + 1 != upperBound: checks.push_back(Vector2i(mask, rowNum + 1)) #Check up a row
+	return checks
+
+#'Functions should be general tools which blah blah blah' I'll generalize it when I need it
+static func checkIndexesForNon0(array:Array[int], startingIndex:int, endingIndex:int):
+	for index in endingIndex - startingIndex:
+		if array[startingIndex + index] != 0:
+			return true
+	return false
 
 class Group: #Data class
 	var blockCount:int
@@ -125,27 +141,28 @@ class Group: #Data class
 		binGrid = data
 		blockCount = blocks
 
-#Rename checks to queue?
 static func findGroups(binArray:Array[int], numOfRows:int):
 	var binaryArray = binArray.duplicate()
 	var groups:Array = []
-	while (binaryArray.any(func(r): return r != 0)): #While there is data which hasn't been found
+	var lowerBound = 0
+	while (checkIndexesForNon0(binaryArray, lowerBound, numOfRows)): #While there is unmatched data
 		var blockCount:int = 0 #Save size of group
 		var groupArray:Array[int] = []
-		for row in numOfRows: groupArray.push_back(0)
-		var checks:Array = []
-		for row in binaryArray.size(): #Maybe can cache confirmed empty rows? Would let me remove bound pushing when not at grid bounds
-			if (binaryArray[row] != 0): #Find first row with data
-				var fullMask = findFirstMask(binaryArray[row]) #Where we'll start looking
+		groupArray.resize(numOfRows)
+		for row in numOfRows: groupArray[row] = 0
+		var searchQueue:Array = []
+		for row in numOfRows - lowerBound:
+			var realRow = row + lowerBound
+			if (binaryArray[realRow] != 0): #Find first row with data
+				lowerBound = realRow #First row with data means all rows below are 0
+				var fullMask = findFirstMask(binaryArray[realRow]) #Where we'll start looking
 				blockCount += fullMask[1]
-				checks.append_array(makeNextChecks(fullMask[0], row, binaryArray.size())) #Add requests to queue for search
-				binaryArray[row] &= ~fullMask[0]
-				groupArray[row] |= fullMask[0]
+				searchQueue.append_array(makeNextChecks(fullMask[0], realRow, lowerBound, numOfRows)) #Add requests to queue for search
+				binaryArray[realRow] &= ~fullMask[0]
+				groupArray[realRow] |= fullMask[0]
 				break #We've found our mask
-		while checks.is_empty() == false: #While the queue isn't empty
-			var curCheck = checks.pop_back()
-			while typeof(curCheck) == 1: curCheck = checks.pop_back() #While it's false (out of bounds)
-			if curCheck == null: break #Queue is empty
+		while searchQueue.is_empty() == false: #While the queue isn't empty
+			var curCheck = searchQueue.pop_back()
 			var newMask = binaryArray[curCheck.y] & curCheck.x
 			while newMask != 0: #While relevant bits still exist, find all masks within the data
 				var foundMask = findFirstMask(newMask)
@@ -154,7 +171,7 @@ static func findGroups(binArray:Array[int], numOfRows:int):
 				var fullMask = extendMask(binaryArray[curCheck.y], foundMask[0]) #Found a mask
 				binaryArray[curCheck.y] &= ~fullMask[0]
 				groupArray[curCheck.y] |= fullMask[0]
-				checks.append_array(makeNextChecks(fullMask[0], curCheck.y, binaryArray.size())) #Make checks for the mask (up and down)
+				searchQueue.append_array(makeNextChecks(fullMask[0], curCheck.y, lowerBound, numOfRows)) #Make checks for the mask (up and down)
 				blockCount += fullMask[1][0] + fullMask[1][1] #Count blocks in group
 		groups.push_back(Group.new(groupArray, blockCount))
 	return groups
@@ -242,21 +259,21 @@ static func getPosition(index, packSize:int = 1):
 
 static func accessIndex(data:Array[int], index:int, packSize:int, modify:int = 0):
 	var pos = getPosition(index, packSize)
-	var curVal = rightShift(data[pos.box], pos.shift) & genMask(packSize, 1, 1) #Shift the data over and mask it out
+	var curVal = rightShift(data[pos.box], pos.shift) & genMask(packSize) #Shift the data over and mask it out
 	if (modify != 0):
 		data[pos.box] += leftShift(modify - curVal, pos.shift) #Funny trick to change value quickly
 	return curVal
 
 static func readSection(array:Array, packs:int, startIndex:int, packSize:int):
-	var packMask = genMask(packSize, 1, 1)
+	var packMask = genMask(packSize)
 	var packsPerBox:int = boxSize/packSize
 	var section:Array[int] = []
 	var pos = getPosition(startIndex, packSize)
 	var remPacksInCurBox:int = (boxSize - pos.shift)/packSize
 	while packs > 0:
-		var rightSideMask:int = genMask(packSize, min(remPacksInCurBox, packs), packMask) #Mask for the packs in the current box
+		var rightSideMask:int = repMask(packSize, min(remPacksInCurBox, packs), packMask) #Mask for the packs in the current box
 		var packsInNextBox = min(boxSize, packs) - remPacksInCurBox #Do I need to concat two boxes together?
-		var leftSideMask:int = genMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0 #Mask for the next box (if needed else 0)
+		var leftSideMask:int = repMask(packSize, packsInNextBox, packMask) if (remPacksInCurBox > packs) else 0 #Mask for the next box (if needed else 0)
 		var rightSide = rightShift(array[pos.box], pos.shift) & rightSideMask #Data from current box
 		var leftSide = leftShift(array[pos.box+1] & leftSideMask, remPacksInCurBox * packSize) if leftSideMask != 0 else 0 #Data from next box (if needed else 0)
 		section.push_back(rightSide | leftSide) #Combine the data

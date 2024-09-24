@@ -38,8 +38,9 @@ func _process(_delta):
 	if exile:
 		exileGroups()
 		exile = false
-	if grid.dirtyBins.size() != 0:
-		updateChunk() #Cleans grid.binGrids and updates meshes/phys objects
+	var blocksNeedingUpdates = grid.changedBGrids.merged(grid.potentiallyEmptyBGrids)
+	if blocksNeedingUpdates.is_empty() == false:
+		updateChunk(blocksNeedingUpdates) #Removes empty grid.binGrids and updates meshes/phys objects
 
 func exileGroups():
 	var groups:Array = grid.identifySubGroups()
@@ -50,10 +51,9 @@ func exileGroups():
 		get_parent().exileGroup(newGrids[1][0], cellToPoint(newGrids[1][1]))
 
 #We do not update 0. 0 isn't real.
-func updateChunk(blocksChanged:Dictionary = grid.dirtyBins):
-	var changes = blocksChanged.duplicate()
-	grid.cleanBinGrids() #Clean up removed binGrids
-	for change in changes:
+func updateChunk(changedBlocks:Dictionary):
+	grid.removeEmptyBGrids()
+	for change in changedBlocks:
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
 		cachedRects.erase(change)
