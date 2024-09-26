@@ -133,7 +133,7 @@ static func checkIndexesForNon0(array:Array[int], startingIndex:int, endingIndex
 			return true
 	return false
 
-class Group: #Data class
+class Group:
 	var blockCount:int
 	var binGrid:Array[int]
 	var grid:Array = [] 
@@ -174,11 +174,11 @@ static func findGroups(binArray:Array[int], numOfRows:int):
 	var groups:Array = []
 	var lowerBound = 0
 	while (checkIndexesForNon0(binaryArray, lowerBound, numOfRows)): #While there is unmatched data
-		var blockCount:int = 0 #Save size of group
+		var blockCount:int = 0
 		var groupArray:Array[int] = []
 		groupArray.resize(numOfRows)
-		for row in numOfRows: groupArray[row] = 0
-		var searchQueue:Array = []
+		groupArray.fill(0)
+		var searchQueue:Array[Vector2i] = []
 		for row in numOfRows - lowerBound:
 			var realRow = row + lowerBound
 			if (binaryArray[realRow] != 0): #Find first row with data
@@ -204,15 +204,14 @@ static func findGroups(binArray:Array[int], numOfRows:int):
 		groups.push_back(Group.new(groupArray, blockCount))
 	return groups
 
-static func greedyRect(binArray:Array) -> Array:
+static func greedyRect(binArray:Array[int]) -> Array:
 	var binaryArray = binArray.duplicate()
-	var meshedBoxes:Array = []
-	#Actual meshing
+	var rects:Array = []
+	#Actual recting
 	for row in binaryArray.size(): #Search each row
 		var rowData:int = binaryArray[row]
 		if (rowData == 0):
-			continue #Row is empty, go on to next row
-		#else: At least one mask exists in current row
+			continue #Row is empty, ignore below and go on to next row
 		var masks:Array = findMasksInInt(rowData)
 		for maskData in masks: #For each mask found
 			var curMask:int = maskData[0]
@@ -226,8 +225,8 @@ static func greedyRect(binArray:Array) -> Array:
 					box.size.y += 1
 				else:
 					break #Mask does not exist in row, shape is complete
-			meshedBoxes.push_back(box)
-	return meshedBoxes
+			rects.push_back(box)
+	return rects
 
 #endregion
 
@@ -333,15 +332,15 @@ static func intToPackedArray(mirrorPackedArray:Array, bitRow:int):
 
 static func packedArrayToInt(packedArray:Array, matchedValues:Dictionary) -> Dictionary:
 	var bitRows:Dictionary = {}
-	for block in matchedValues: 
-		bitRows[block] =  0
 	var curMask = 1
 	var row = packedArray.duplicate()
 	for box in row.size():
 		for block in packedGrid.blocksPerBox:
 			var curVal:int = row[box] & packedGrid.blockMask
 			row[box] = BinUtil.rightShift(row[box], packedGrid.bitsPerBlock)
-			if matchedValues.has(curVal): bitRows[curVal] |= curMask
+			if matchedValues.has(curVal):
+				bitRows.get_or_add(curVal, 0)
+				bitRows[curVal] |= curMask
 			if (curMask > 0): curMask <<= 1 #Stop from shifting negative number on the last check of a 64 block row (bc godot is stupid)
 	return bitRows
 

@@ -9,24 +9,20 @@ var boxesPerRow:int
 var blocksPerRow:int #grid.x
 
 var rows:Array = [] #rows.size() is grid.y
-
-var bgTempArray:Array[int] = [] #Template for the binaryGrids
-var binGrids:Dictionary = {}
-
-var changedBGrids:Dictionary = {} #Keep track of which blockTypes the chunk needs to update, potentiallyEmptyBGrids is a subset of this set and should be .merged() whenever it is used
-var potentiallyEmptyBGrids:Dictionary = {} #Keep track of bgrids which may need to be culled
-
+var binRows:Array[Dictionary] = [] #For each row there is a dictionary with each non-zero blockType binRow
+var bitBinRows:Dictionary = {} #For each blockType in the grid, this stores which rows contain that block 
+var changedBGrids:Dictionary = {} #Keep track of which blockTypes the chunk needs to update
 
 func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array = []):
 	if gridBlocksPerRow > BinUtil.boxSize: push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
 	blocksPerRow = gridBlocksPerRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
 	rows.resize(rowCount)
-	bgTempArray.resize(rowCount)
-	bgTempArray.fill(0) #This has to be initialized before I start goofing with the bgrids
+	binRows.resize(rowCount)
 	for row in rowCount:
 		if hasData: #Load data
 			rows[row] = data[row]
+			binRows[row] = {} #Dictionary
 			_recacheBinaryRow(row)
 		else: #Fill in null data
 			var packedRow:Array = []
@@ -40,15 +36,13 @@ func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array 
 func accessCell(cell:Vector2i, modify:int = -1) -> int:
 	var pos = BinUtil.getPosition(cell.x, bitsPerBlock)
 	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
-	if (modify != -1):
+	if (modify != -1 && modify != curVal):
 		rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift) #Funny trick to modify value easily
 		var bitMask = 1 << cell.x
-		if (modify != 0): #0 is our null value so we don't keep a binaryGrid to track it
-			binGrids.get_or_add(modify, bgTempArray.duplicate())[cell.y] |= bitMask
-			changedBGrids[modify] = null
-		if (curVal != 0 && curVal != modify): #Same reasoning as above
-			binGrids[curVal][cell.y] &= ~bitMask
-			potentiallyEmptyBGrids[curVal] = null
+		if (modify != 0): #0 is our null value so we don't keep a binaryGrid to track it, we can track it through inversion
+			addToBinRow(cell, modify)
+		if (curVal != 0):
+			subtractFromBinRow(cell, curVal)
 	return curVal
 
 #Used for loading
@@ -93,82 +87,93 @@ func subtractGrid(gridArray:Array):
 func _findUselessRows(side:bool): #If side == false start at bottom (row 0), if side == true start at top (row rows.size()-1)
 	pass
 
-func changeXDim(newBPR:int):
-	if newBPR > 64 || newBPR < 0: return false
-	var newBoxCount:int = ceili(float(newBPR)/blocksPerBox)
-	if newBoxCount > boxesPerRow: #If we're adding more to the end (easy way)
+func changeXDim(newBpR:int):
+	if newBpR > 64 || newBpR < 1: return false
+	var newBoxCount:int = ceili(float(newBpR)/blocksPerBox)
+	if newBoxCount > boxesPerRow: #No changes to the binRow or Chunk needed
 		for row in rows:
+			row.resize(newBoxCount)
 			for box in newBoxCount - boxesPerRow: 
-				row.push_back(0) #Add another box as needed
-	elif newBPR < blocksPerRow: #If we're cutting the end off (harder)
-		var newTrailingIndex:int = newBPR - blocksPerBox * (newBoxCount - 1) #Number of blocks we want in the last box
-		var trailingMask:int = BinUtil.repMask(bitsPerBlock, newTrailingIndex, blockMask)
+				row[boxesPerRow + box] = 0 #Add extra boxes
+	elif newBpR < blocksPerRow:
 		for row in rows.size():
-			var newRow:Array[int] = []
-			for box in newBoxCount: #Get all the boxes we're keeping
-				newRow.push_back(rows[row][box])
-			newRow[newBoxCount - 1] &= trailingMask #Cull the last box to chop off any extra
-			rows[row] = newRow
-		potentiallyEmptyBGrids.merge(binGrids) #Any of the rows we just changed may have only had data where we cut, so we've gotta check
-	blocksPerRow = newBPR
+			rows[row].resize(newBoxCount)
+			var newTrailingIndex:int = newBpR - blocksPerBox * (newBoxCount - 1) #Number of blocks we want in the last box
+			var trailingMask:int = BinUtil.repMask(bitsPerBlock, newTrailingIndex, blockMask)
+			rows[row][newBoxCount - 1] &= trailingMask
+			_recacheBinaryRow(row)
+	blocksPerRow = newBpR
 	boxesPerRow = newBoxCount
 
 func changeYDim(newNor:int):
 	var curNor = rows.size()
-	rows.resize(newNor)
-	bgTempArray.resize(newNor)
+	rows.resize(newNor) #All we need to do if we're removing rows
+	binRows.resize(newNor) # ^^
 	if newNor > curNor: #If we're adding rows
 		var rowTemp = [] #Template to push into new row slots
 		rowTemp.resize(boxesPerRow)
 		rowTemp.fill(0)
 		for row in newNor - curNor:
-			bgTempArray[curNor + row] = 0 #Add a row to the bgTempArray
-			for grid in binGrids:
-				binGrids[grid].push_back(0)
+			binRows[curNor + row] = {}
 			rows[curNor + row] = rowTemp.duplicate()
-	elif newNor < curNor: #If we're cutting rows
-		for grid in binGrids:
-			binGrids[grid].resize(newNor)
-			potentiallyEmptyBGrids[grid] = null #There may have only been data in these rows, so we've gotta check
 
 #endregion
 
 #region Binary Grid Management
 
-func _mergeBinGrids(values:Dictionary) -> Array[int]:
+func _mergeBinGrids(blockTypes:Dictionary) -> Array[int]:
 	var binaryGrid:Array[int] = []
+	binaryGrid.resize(rows.size())
+	binaryGrid.fill(0)
 	for row in rows.size():
-		binaryGrid.push_back(0)
-		for value in values: #Combine BStrings into single string per row
-			if (binGrids.has(value)):
-				binaryGrid[row] |= binGrids[value][row]
+		for blockType in blockTypes: #Combine BStrings into single string per row
+			if (binRows[row].has(blockType)):
+				binaryGrid[row] |= binRows[row][blockType]
 	return binaryGrid
 
-#This function hurts a bit bc it has to loop through all blockTypes
-func _recacheBinaryRow(rowNum:int):
-	var newRows:Dictionary = BinUtil.packedArrayToInt(rows[rowNum], BlockTypes.blocks)
-	for blockGrid in newRows:
-		if newRows[blockGrid] != 0:
-			binGrids.get_or_add(blockGrid, bgTempArray.duplicate())
-			if (binGrids[blockGrid][rowNum] != newRows[blockGrid]): 
-				changedBGrids[blockGrid] = null
-				binGrids[blockGrid][rowNum] = newRows[blockGrid]
-		elif binGrids.has(blockGrid):
-			potentiallyEmptyBGrids[blockGrid] = null #Note that this may have made the bGrid empty
-			binGrids[blockGrid][rowNum] = 0
+func addToBinRow(cell:Vector2i, blockType:int):
+	var binMask = 1 << cell.x
+	var bitMask = 1 << cell.y
+	binRows[cell.y].get_or_add(blockType, 0)
+	binRows[cell.y][blockType] |= binMask
+	bitBinRows.get_or_add(blockType, 0)
+	bitBinRows[blockType] |= bitMask
+	changedBGrids[blockType] = true
 
-func removeEmptyBGrids():
-	for grid in potentiallyEmptyBGrids:
-		if (binGrids[grid].any(func(r): return r != 0) == false): #Check if the entire bgrid is 0 (there are no of the current block in the grid
-			binGrids.erase(grid)
-		potentiallyEmptyBGrids.erase(grid)
+func subtractFromBinRow(cell:Vector2i, blockType:int):
+		var binMask = 1 << cell.x
+		var bitMask = 1 << cell.y
+		binRows[cell.y][blockType] &= ~binMask
+		if binRows[cell.y][blockType] == 0:
+			binRows[cell.y].erase(blockType)
+			bitBinRows[blockType] &= ~bitMask
+			if bitBinRows[blockType] == 0:
+				bitBinRows.erase(blockType)
+		changedBGrids[blockType] = true
+
+func _recalcBinaryRow(rowNum:int):
+	var newRows:Dictionary = BinUtil.packedArrayToInt(rows[rowNum], BlockTypes.blocks)
+	var bitBinMask = 1 << rowNum
+	for block in bitBinRows.merged(newRows): #For each block either already in the grid or entering the grid
+		if binRows[rowNum].has(block) && !newRows.has(block): #If the block was in the row but now is not
+			changedBGrids[block] = true
+			bitBinRows[block] &= ~bitBinMask #Remove
+			if bitBinRows[block] == 0: #If the block is no longer in the grid
+				bitBinRows.erase(block)
+		elif !binRows[rowNum].has(block) && newRows.has(block): #Block wasn't in row but is about to be
+			changedBGrids[block] = true
+			if bitBinRows.has(block): #If block was already in the grid
+				bitBinRows[block] |= bitBinMask
+			else: #First instance of block appearing in grid
+				bitBinRows[block] = bitBinMask
+	binRows[rowNum] = newRows
 
 #endregion
 
 #region Loading & Splitting
 
 func identifySubGroups() -> Array:
-	var mergedBinGrid = _mergeBinGrids(binGrids)
+	var mergedBinGrid = _mergeBinGrids(binRows)
 	var groups:Array = BinUtil.findGroups(mergedBinGrid, rows.size())
 	return groups
 

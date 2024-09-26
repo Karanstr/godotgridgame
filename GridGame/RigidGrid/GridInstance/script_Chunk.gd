@@ -38,23 +38,22 @@ func _process(_delta):
 	if exile:
 		findAndExileGroups()
 		exile = false
-	var blocksNeedingUpdates = grid.changedBGrids.merged(grid.potentiallyEmptyBGrids)
-	if blocksNeedingUpdates.is_empty() == false:
-		updateChunk(blocksNeedingUpdates) #Removes empty grid.binGrids and updates meshes/phys objects
+	if grid.changedBGrids.is_empty() == false:
+		updateChunk(grid.changedBGrids) #Removes updates meshes/phys objects
 
 #We do not update 0. 0 isn't real.
 func updateChunk(changedBlocks:Dictionary):
-	grid.removeEmptyBGrids()
 	for change in changedBlocks:
 		_removeRenderBoxes(change)
 		_removePhysicsBoxes(change)
 		cachedRects.erase(change)
 		pointMasses.erase(change)
-		if grid.binGrids.has(change): #If value still exists in binGrids
+		if grid.binGrids.has(change): #If value still exists in binRows
 			cachedRects[change] = BinUtil.greedyRect(grid.binGrids[change])
 			_addRenderBoxes(change)
 			_addPhysicsBoxes(change)
 	_updateCOM(grid.binGrids)
+	grid.changedBinGrids.clear()
 
 func findAndExileGroups():
 	var parent = get_parent()
