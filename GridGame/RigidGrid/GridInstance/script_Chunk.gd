@@ -16,7 +16,7 @@ func initialize(blockDimensions:Vector2, gridDimensions:Vector2i, hasData = fals
 	blockDims = blockDimensions
 	grid = packedGrid.new(gridDimensions.y, gridDimensions.x, hasData, gridData)
 	if get_parent().name == "World": editable = true
-	updateChunk(grid.binGrids)
+	updateChunk(grid.bitBinRows)
 
 func _input(event):
 	if event is InputEventKey && event.pressed && editable:
@@ -48,12 +48,13 @@ func updateChunk(changedBlocks:Dictionary):
 		_removePhysicsBoxes(change)
 		cachedRects.erase(change)
 		pointMasses.erase(change)
-		if grid.binGrids.has(change): #If value still exists in binRows
-			cachedRects[change] = BinUtil.greedyRect(grid.binGrids[change])
+		if grid.bitBinRows.has(change): #If value still exists in binRows
+			var binGrid:Array[int] = grid.mergeBinGrids({change:null})
+			cachedRects[change] = BinUtil.greedyRect(binGrid)
 			_addRenderBoxes(change)
 			_addPhysicsBoxes(change)
-	_updateCOM(grid.binGrids)
-	grid.changedBinGrids.clear()
+	_updateCOM(grid.bitBinRows)
+	grid.changedBGrids.clear()
 
 func findAndExileGroups():
 	var parent = get_parent()

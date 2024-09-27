@@ -23,7 +23,7 @@ func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array 
 		if hasData: #Load data
 			rows[row] = data[row]
 			binRows[row] = {} #Dictionary
-			_recacheBinaryRow(row)
+			_recalcBinaryRow(row)
 		else: #Fill in null data
 			var packedRow:Array = []
 			packedRow.resize(boxesPerRow)
@@ -71,13 +71,13 @@ func modifyRow(rowNum:int, startingIndex:int, numOfInserts:int, data:Array, trea
 		rows[rowNum][startBox + box] |= BinUtil.leftShift(currentInsertBox, curIndex * bitsPerBlock) #Insert new data
 		packsInserted += packsInsertingThisPass
 		curIndex = 0
-	_recacheBinaryRow(rowNum)
+	_recalcBinaryRow(rowNum)
 
 func subtractGrid(gridArray:Array):
 	for row in rows.size():
 		for box in rows[row].size():
 			rows[row][box] &= ~gridArray[row][box]
-		_recacheBinaryRow(row)
+		_recalcBinaryRow(row)
 
 #endregion
 
@@ -101,7 +101,7 @@ func changeXDim(newBpR:int):
 			var newTrailingIndex:int = newBpR - blocksPerBox * (newBoxCount - 1) #Number of blocks we want in the last box
 			var trailingMask:int = BinUtil.repMask(bitsPerBlock, newTrailingIndex, blockMask)
 			rows[row][newBoxCount - 1] &= trailingMask
-			_recacheBinaryRow(row)
+			_recalcBinaryRow(row)
 	blocksPerRow = newBpR
 	boxesPerRow = newBoxCount
 
@@ -121,7 +121,7 @@ func changeYDim(newNor:int):
 
 #region Binary Grid Management
 
-func _mergeBinGrids(blockTypes:Dictionary) -> Array[int]:
+func mergeBinGrids(blockTypes:Dictionary) -> Array[int]:
 	var binaryGrid:Array[int] = []
 	binaryGrid.resize(rows.size())
 	binaryGrid.fill(0)
@@ -173,7 +173,7 @@ func _recalcBinaryRow(rowNum:int):
 #region Loading & Splitting
 
 func identifySubGroups() -> Array:
-	var mergedBinGrid = _mergeBinGrids(binRows)
+	var mergedBinGrid = mergeBinGrids(bitBinRows)
 	var groups:Array = BinUtil.findGroups(mergedBinGrid, rows.size())
 	return groups
 
