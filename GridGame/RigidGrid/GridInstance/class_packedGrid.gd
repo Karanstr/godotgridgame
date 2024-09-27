@@ -38,7 +38,6 @@ func accessCell(cell:Vector2i, modify:int = -1) -> int:
 	var curVal = BinUtil.rightShift(rows[cell.y][pos.box], pos.shift) & blockMask
 	if (modify != -1 && modify != curVal):
 		rows[cell.y][pos.box] += BinUtil.leftShift(modify - curVal, pos.shift) #Funny trick to modify value easily
-		var bitMask = 1 << cell.x
 		if (modify != 0): #0 is our null value so we don't keep a binaryGrid to track it, we can track it through inversion
 			addToBinRow(cell, modify)
 		if (curVal != 0):
