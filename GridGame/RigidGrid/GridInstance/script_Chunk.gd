@@ -69,11 +69,11 @@ func findAndExileGroups():
 		parent.exileGroup(group)
 
 func pointToCell(point:Vector2) -> Vector2i:
+	if point.x < 0 || point.y < 0:
+		return Vector2i(-1, -1)
 	var cell:Vector2i = point/blockDims
-	if point.x < 0:
-		cell.x -= 1
-	if point.y < 0:
-		cell.y -= 1 
+	if cell.x < 63 || cell.y < 63:
+		return Vector2i(-1, -1)
 	return cell
 
 func cellToPoint(cell:Vector2i):
