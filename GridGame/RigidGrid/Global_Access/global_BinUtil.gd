@@ -26,6 +26,18 @@ static func bitsToStore(number:int) -> int:
 		return bits - 1
 	return bits
 
+#Name this better in the morning
+static func findCoveredRange(number:int) -> Vector2i:
+	var num = number
+	var cRange:Vector2i = Vector2i(0, 0)
+	while num & 1 == 0:
+		num = rightShift(num, 1)
+		cRange[0] += 1
+	while num != 0: 
+		cRange[1] += 1
+		num = rightShift(num, 1)
+	return cRange
+
 static func findRightSetBit(number:int) -> int:
 	return number & -number #Funny math trick, I don't really understand it
 
@@ -135,39 +147,45 @@ static func checkIndexesForNon0(array:Array[int], startingIndex:int, endingIndex
 
 class Group:
 	var blockCount:int
-	var binGrid:Array[int]
-	var grid:Array = [] 
-	var fittedGrid:Array = []
-	var topLeftCell:Vector2i = Vector2i(-1, -1)
+	var binData:Array[int]
+	var posDim:Rect2i
+	var grid:Array = []
+	var culledGrid:Array = []
 	
 	func _init(data:Array[int], blocks:int):
-		binGrid = data
 		blockCount = blocks
-		grid.resize(binGrid.size())
+		binData = data
+		findGridStartCellAndDimensions()
 	
-	func convertBinGridToGrid(referenceGrid:Array):
-		var minStart:int = packedGrid.blocksPerBox + 1
+	func findGridStartCellAndDimensions():
+		posDim = Rect2i(packedGrid.blocksPerBox + 1, -1, 0, -1)
 		var endIndex:int = 0
-		for row in referenceGrid.size():
-			var rowData = BinUtil.intToPackedArray(referenceGrid[row], binGrid[row])
-			grid[row] = rowData[0]
-			if binGrid[row] != 0:
-				if rowData[1][0] < minStart: 
-					minStart = rowData[1][0]
-				if rowData[1][1] + rowData[1][0] > endIndex: 
-					endIndex = rowData[1][1] + rowData[1][0]
-		topLeftCell.x = minStart
-		return [minStart, endIndex - minStart]
+		for row in binData.size():
+			if binData[row] != 0:
+				if posDim.position.y == -1: #If we haven't found start of array
+					posDim.position.y = row
+				var cRange:Vector2i = BinUtil.findCoveredRange(binData[row])
+				if cRange[0] < posDim.position.x: 
+					posDim.position.x = cRange[0]
+				if cRange[0] + cRange[1] > endIndex: 
+					endIndex = cRange[0] + cRange[1]
+			elif posDim.position.y != -1: #If we found start of array
+				posDim.size.y = row - posDim.position.y #Num of rows
+				break
+		posDim.size.x = endIndex - posDim.position.x
 	
-	func copyGridToGroup(referenceGrid:Array):
-		var fittedGridInfo:Array = convertBinGridToGrid(referenceGrid)
-		for row in binGrid.size():
-			if binGrid[row] != 0:
-				if topLeftCell.y == -1:
-					topLeftCell.y = row
-				fittedGrid.push_back(BinUtil.readSection(grid[row], fittedGridInfo[1], fittedGridInfo[0], packedGrid.bitsPerBlock))
-			elif topLeftCell.y != -1:
-				break #If an entire row is null, we know the object can't extend through it and are done
+	func copyGrid(gridToCopyFrom:Array, boxesPerRow:int, bitsPerBlock:int):
+		grid.resize(gridToCopyFrom.size())
+		culledGrid.resize(posDim.size.y)
+		var tempRow:Array[int] = []
+		tempRow.resize(boxesPerRow)
+		tempRow.fill(0)
+		grid.fill(tempRow.duplicate())
+		for row in posDim.size.y:
+			var realRow = row + posDim.position.y
+			var rowData = BinUtil.intToPackedArray(gridToCopyFrom[realRow], binData[realRow], bitsPerBlock)
+			grid[realRow] = rowData
+			culledGrid[row] = BinUtil.readSection(rowData, posDim.size.x, posDim.position.x, bitsPerBlock)
 
 static func findGroups(binArray:Array[int], numOfRows:int):
 	var binaryArray = binArray.duplicate()
@@ -309,26 +327,23 @@ static func readSection(array:Array, packs:int, startIndex:int, packSize:int):
 		remPacksInCurBox = boxSize - packsInNextBox
 	return section
 
-static func intToPackedArray(mirrorPackedArray:Array, bitRow:int):
+static func intToPackedArray(mirrorPackedArray:Array, bitRow:int, bitsPerBlock:int):
 	var row:Array[int] = []
-	var rowMask:Array[int] = [0]
-	var length:int = 0
-	var start:int = 0
+	row.resize(mirrorPackedArray.size())
+	row.fill(0)
 	var curBlock:int = 0
 	var curBox:int = 0
+	var packMask = genMask(bitsPerBlock)
 	while bitRow != 0:
-		if (curBlock == packedGrid.blocksPerBox): #Yeah I could do this with division instead of two variables, shut up this is better
+		if (curBlock == packedGrid.blocksPerBox):
 			curBlock = 0
+			row[curBox] &= mirrorPackedArray[curBox]
 			curBox += 1
-			rowMask.push_back(0)
-		if bitRow & 1: rowMask[curBox] |= packedGrid.blockMask << curBlock * packedGrid.bitsPerBlock #Put in the blockMask on the current block
-		if bitRow & 1 || length != 0: length += 1 #If current block is set, we've found a block which is set
-		if length == 0: start += 1 #If current block isn't set but there was already at least one set block, this unset block is sandwiched by set ones
+		if bitRow & 1: row[curBox] |= packMask << (curBlock * bitsPerBlock)
 		bitRow = BinUtil.rightShift(bitRow, 1)
 		curBlock += 1
-	for box in mirrorPackedArray.size():
-		row.push_back(mirrorPackedArray[box] & rowMask[box])
-	return [row, [start, length]] #Preserve start and length for grid culling later
+	row[curBox] &= mirrorPackedArray[curBox]
+	return row
 
 static func packedArrayToInt(packedArray:Array, matchedValues:Dictionary) -> Dictionary:
 	var bitRows:Dictionary = {}

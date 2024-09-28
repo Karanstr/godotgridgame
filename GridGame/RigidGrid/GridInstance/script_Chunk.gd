@@ -13,11 +13,10 @@ var lastEditKey:Vector2i = Vector2i(-1, -1)
 var editValue:int = 0
 var exile = false
 
-func initialize(blockDimensions:Vector2, gridDimensions:Vector2i, hasData = false, gridData:Array = []):
+func initialize(blockDimensions:Vector2, gridDimensions:Vector2i):
 	blockDims = blockDimensions
-	grid = packedGrid.new(gridDimensions.y, gridDimensions.x, hasData, gridData)
+	grid = packedGrid.new(gridDimensions.y, gridDimensions.x)
 	if get_parent().name == "World": editable = true
-	updateChunk(grid.bitBinRows)
 
 func _input(event):
 	if event is InputEventKey && event.pressed && editable:
@@ -61,12 +60,13 @@ func updateChunk(changedBlocks:Dictionary):
 
 func findAndExileGroups():
 	var parent = get_parent()
-	var groups:Array = grid.identifySubGroups()
-	for group in groups.size()-1: #Keep the bottom grid bc I need to decide somehow and this lets things fall
-		var curGroup = groups[group]
-		curGroup.copyGridToGroup(grid.rows)
-		grid.subtractGrid(curGroup.grid)
-		parent.exileGroup(curGroup.fittedGrid, Vector2(curGroup.topLeftCell) * blockDims)
+	var mergedBinGrid = grid.mergeBinGrids(grid.bitBinRows)
+	var groups:Array = BinUtil.findGroups(mergedBinGrid, 64)
+	groups.pop_back() #Don't remove the last group from the chunk
+	for group in groups: 
+		group.copyGrid(grid.rows, grid.boxesPerRow, grid.bitsPerBlock)
+		grid.subtractGrid(group.grid)
+		parent.exileGroup(group)
 
 func pointToCell(point:Vector2) -> Vector2i:
 	var cell:Vector2i = point/blockDims
@@ -110,35 +110,17 @@ func _rectToPointMass(recti:Rect2i, weightPerBlock:int):
 
 #endregion
 
-#region Render&Physics Management
+#region Render&Physics Management  
 
-func _addRenderBoxes(blockType):
-	var image = BlockTypes.blocks[blockType].texture
-	for rectNum in blockTypeRects.get(blockType, []).size():
-		var rect = blockTypeRects[blockType][rectNum]
-		var polygon = _makeRenderPolygon(rect, image)
-		polygon.name = _encodeName(rectNum, blockType)
-		add_child(polygon)
-
-func _removeRenderBoxes(blockType): 
-	for rectNum in blockTypeRects.get(blockType, []).size():
-		get_node(_encodeName(rectNum, blockType)).free()
-
-func _addPhysicsBoxes():
-	for rectNum in collisionRects.size():
-		var rect = collisionRects[rectNum]
-		var colBox:CollisionShape2D = _makeColBox(rect)
-		colBox.name = _encodeName(rectNum, 0)
-		add_sibling(colBox)
-
-func _removePhysicsBoxes():
-	for rectNum in collisionRects.size():
-		get_node("../" + _encodeName(rectNum, 0)).free()
-
-func _encodeName(number, blockType) -> String:
-	#Chunk Name, followed by encoded name
-	#Only matters with collision boxes, but I don't care enough to remove it from the render polygons
+func _encodeName(number, blockType = 0) -> String:
+	#Chunk Name, only matters with collision boxes
 	return name + " " + String.num_int64((number << grid.bitsPerBlock) + blockType)
+
+func _rectiToRect(recti:Rect2i) -> Rect2:
+	var rect:Rect2 = Rect2(recti)
+	rect.position *= blockDims
+	rect.size *= blockDims
+	return rect
 
 func _makeRenderPolygon(recti, texture) -> Polygon2D:
 	var rect = _rectiToRect(recti)
@@ -161,11 +143,28 @@ func _makeColBox(recti:Rect2i) -> CollisionShape2D:
 	colShape.shape.size = rect.size
 	return colShape
 
-func _rectiToRect(recti:Rect2i) -> Rect2:
-	var rect:Rect2 = Rect2(recti)
-	rect.position *= blockDims
-	rect.size *= blockDims
-	return rect
+func _addRenderBoxes(blockType):
+	var image = BlockTypes.blocks[blockType].texture
+	for rectNum in blockTypeRects.get(blockType, []).size():
+		var rect = blockTypeRects[blockType][rectNum]
+		var polygon = _makeRenderPolygon(rect, image)
+		polygon.name = _encodeName(rectNum, blockType)
+		add_child(polygon)
+
+func _removeRenderBoxes(blockType): 
+	for rectNum in blockTypeRects.get(blockType, []).size():
+		get_node(_encodeName(rectNum, blockType)).free()
+
+func _addPhysicsBoxes():
+	for rectNum in collisionRects.size():
+		var rect = collisionRects[rectNum]
+		var colBox:CollisionShape2D = _makeColBox(rect)
+		colBox.name = _encodeName(rectNum)
+		add_sibling(colBox)
+
+func _removePhysicsBoxes():
+	for rectNum in collisionRects.size():
+		get_node("../" + _encodeName(rectNum)).free()
 
 #endregion
 

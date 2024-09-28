@@ -39,4 +39,3 @@ Done
 	-/ Implement many-updating of the grid (without just calling modify a bunch)
 	-/ Allow loading rows with a null space
 	-/ Split objects when they are distinct
-	-/ Grid resizing

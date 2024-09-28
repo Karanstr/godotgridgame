@@ -1,7 +1,7 @@
 class_name packedGrid
 
 #Supposed to be consts but it hates me
-static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1) #Must store all blockTypes +  null value
+static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1) #Must store all blockTypes + null value
 static var blocksPerBox:int = BinUtil.boxSize/bitsPerBlock
 static var blockMask:int = BinUtil.genMask(bitsPerBlock)
 
@@ -13,22 +13,16 @@ var binRows:Array[Dictionary] = [] #For each row there is a dictionary with each
 var bitBinRows:Dictionary = {} #For each blockType in the grid, this stores which rows contain that block 
 var changedBGrids:Dictionary = {} #Keep track of which blockTypes the chunk needs to update
 
-func _init(rowCount:int, gridBlocksPerRow:int, hasData:bool = false, data:Array = []):
+func _init(rowCount:int, gridBlocksPerRow:int):
 	if gridBlocksPerRow > BinUtil.boxSize: push_error("packedGrid cannot support row lengths longer than " + String.num_int64(BinUtil.boxSize) + ", if something is broken this is probably why")
 	blocksPerRow = gridBlocksPerRow
 	boxesPerRow = ceili(float(blocksPerRow)/blocksPerBox)
 	rows.resize(rowCount)
 	binRows.resize(rowCount)
 	for row in rowCount:
-		if hasData: #Load data
-			rows[row] = data[row]
-			binRows[row] = {} #Dictionary
-			_recalcBinaryRow(row)
-		else: #Fill in null data
-			var packedRow:Array = []
-			packedRow.resize(boxesPerRow)
-			packedRow.fill(0)
-			rows[row] = packedRow
+		rows[row] = []
+		rows[row].resize(boxesPerRow)
+		rows[row].fill(0)
 
 #region Grid Editing
 
@@ -80,43 +74,44 @@ func subtractGrid(gridArray:Array):
 
 #endregion
 
-#region Meta Grid Editing
-
-#Gotta do this one
-func _findUselessRows(side:bool): #If side == false start at bottom (row 0), if side == true start at top (row rows.size()-1)
-	pass
-
-func changeXDim(newBpR:int):
-	if newBpR > 64 || newBpR < 1: return false
-	var newBoxCount:int = ceili(float(newBpR)/blocksPerBox)
-	if newBoxCount > boxesPerRow: #No changes to the binRow or Chunk needed
-		for row in rows:
-			row.resize(newBoxCount)
-			for box in newBoxCount - boxesPerRow: 
-				row[boxesPerRow + box] = 0 #Add extra boxes
-	elif newBpR < blocksPerRow:
-		for row in rows.size():
-			rows[row].resize(newBoxCount)
-			var newTrailingIndex:int = newBpR - blocksPerBox * (newBoxCount - 1) #Number of blocks we want in the last box
-			var trailingMask:int = BinUtil.repMask(bitsPerBlock, newTrailingIndex, blockMask)
-			rows[row][newBoxCount - 1] &= trailingMask
-			_recalcBinaryRow(row)
-	blocksPerRow = newBpR
-	boxesPerRow = newBoxCount
-
-func changeYDim(newNor:int):
-	var curNor = rows.size()
-	rows.resize(newNor) #All we need to do if we're removing rows
-	binRows.resize(newNor) # ^^
-	if newNor > curNor: #If we're adding rows
-		var rowTemp = [] #Template to push into new row slots
-		rowTemp.resize(boxesPerRow)
-		rowTemp.fill(0)
-		for row in newNor - curNor:
-			binRows[curNor + row] = {}
-			rows[curNor + row] = rowTemp.duplicate()
-
-#endregion
+##region Meta Grid Editing
+#
+##Gotta do this one
+#func _findUselessRows(side:bool): #If side == false start at bottom (row 0), if side == true start at top (row rows.size()-1)
+	#pass
+#
+#func changeXDim(newBpR:int):
+	#if newBpR > 64 || newBpR < 1: return false
+	#var newBoxCount:int = ceili(float(newBpR)/blocksPerBox)
+	#if newBoxCount > boxesPerRow: #No changes to the binRow or Chunk needed
+		#for row in rows:
+			#row.resize(newBoxCount)
+			#for box in newBoxCount - boxesPerRow: 
+				#row[boxesPerRow + box] = 0 #Add extra boxes
+	#elif newBpR < blocksPerRow:
+		#for row in rows.size():
+			#rows[row].resize(newBoxCount)
+			#var newTrailingIndex:int = newBpR - blocksPerBox * (newBoxCount - 1) #Number of blocks we want in the last box
+			#var trailingMask:int = BinUtil.repMask(bitsPerBlock, newTrailingIndex, blockMask)
+			#rows[row][newBoxCount - 1] &= trailingMask
+			#_recalcBinaryRow(row)
+	#blocksPerRow = newBpR
+	#boxesPerRow = newBoxCount
+#
+#func changeYDim(newNor:int):
+	#var curNor = rows.size()
+	#rows.resize(newNor) #All we need to do if we're removing rows
+	#binRows.resize(newNor) # ^^
+	#
+	#if newNor > curNor: #If we're adding rows
+		#var rowTemp = [] #Template to push into new row slots
+		#rowTemp.resize(boxesPerRow)
+		#rowTemp.fill(0)
+		#for row in newNor - curNor:
+			#binRows[curNor + row] = {}
+			#rows[curNor + row] = rowTemp.duplicate()
+#
+##endregion
 
 #region Binary Grid Management
 
@@ -166,14 +161,5 @@ func _recalcBinaryRow(rowNum:int):
 			else: #First instance of block appearing in grid
 				bitBinRows[block] = bitBinMask
 	binRows[rowNum] = newRows
-
-#endregion
-
-#region Loading & Splitting
-
-func identifySubGroups() -> Array:
-	var mergedBinGrid = mergeBinGrids(bitBinRows)
-	var groups:Array = BinUtil.findGroups(mergedBinGrid, rows.size())
-	return groups
 
 #endregion
