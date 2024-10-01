@@ -30,6 +30,7 @@ func _process(_delta):
 	if (editable):
 		if Input.is_action_pressed("click"):
 			var cell:Vector2i = pointToCell(get_local_mouse_position())
+			print(cell)
 			if (cell != lastEditKey && cell != Vector2i(-1, -1)):
 				lastEditKey = cell
 				grid.accessCell(cell, editValue)
@@ -72,7 +73,7 @@ func pointToCell(point:Vector2) -> Vector2i:
 	if point.x < 0 || point.y < 0:
 		return Vector2i(-1, -1)
 	var cell:Vector2i = point/blockDims
-	if cell.x < 63 || cell.y < 63:
+	if cell.x > 63 || cell.y > 63:
 		return Vector2i(-1, -1)
 	return cell
 
