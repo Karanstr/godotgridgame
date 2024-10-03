@@ -1,89 +1,110 @@
 class_name SparseDimensionalDAG
 
+#For now we're going to use arrays and search instead of hashing/lookups.
+#This is very likely to change, don't worry about it
 class Nodes:
-	var pot:Array = [
-			{0 : Branch.new()} , #One above leaf nodes
-	]
+	var pot:Array = []
+	
+	func _init(layers:int):
+		for layer in layers:
+			pot.push_back([])
+		pot[layers - 1].push_back(Branch.new())
 	
 	func findFirstOpenSpot(layer):
 		for i in pot[layer].size():
-			if not pot[layer].has(i):
+			if typeof(pot[layer][i]) == 2:
 				return i
-		return pot[layer].size()
+		pot[layer].push_back(-1)
+		return pot[layer].size() - 1
+		
+	func getNodeIndex(layer, node) -> int:
+		for branch in pot[layer].size():
+			if pot[layer][branch].mask == node.mask && pot[layer][branch].children == node.children:
+				return branch
+		return -1
 	
-	#Disgusting
-	func get_or_add(layer, node):
-		var options = pot[layer]
-		for curKey in options.keys():
-			var option = options[curKey]
-			if option.children == node.children:
-				return curKey
+	func addNode(layer, node) -> int:
+		var potIndex = getNodeIndex(layer, node)
+		if potIndex != -1:
+			return potIndex
 		var index = findFirstOpenSpot(layer)
 		pot[layer][index] = node
 		return index
 
 class Branch:
-	var kidMask:int
-	var children:Array[int] #Use u16s
-	func _init(mask:int = 0b0000, kids:Array[int] = [0,0,0,0]):
-		kidMask = mask
+	var children:Array[int]
+	var mask:int
+	var refCount:int = 1
+	var blockCount:int = 0
+	func _init(childMask:int = 0b00, kids:Array[int] = [0,0]):
 		children = kids
+		mask = childMask
+	
+	func duplicate():
+		var newBranch = Branch.new(mask, children.duplicate())
+		newBranch.blockCount = blockCount
+		return newBranch
 
-var layersFromRootToLeaf = 1
-var nodes:Nodes = Nodes.new()
-var root:Branch = nodes.pot[0][0]
+var nodes:Nodes
+var topLayer:int
 
-#Address should be read right to left, leaf to root
+func _init(layerCount:int = 1):
+	nodes = Nodes.new(layerCount)
+	topLayer = layerCount - 1
 
-func readLeaf(address:int):
-	var curNode = root
-	for i in layersFromRootToLeaf - 1: #Descend until we're in a level one node (or find an empty section)
-		var curLayer = layersFromRootToLeaf - i
-		var kidAddress = (address >> (curLayer * 2)) & 0b11
-		if (curNode.kidMask >> kidAddress) & 1 == 0:
-			return 0
-		curNode = nodes.pot[curLayer - 1][curNode.children[kidAddress]]
-	return curNode.children[address & 0b11]
+func getPathIndi(path) -> Array[int]:
+	var trail:Array[int] = []
+	trail.resize(topLayer + 1)
+	trail.fill(-1)
+	trail[topLayer] = 0
+	var curNode = nodes.pot[topLayer][0]
+	var curLayer = topLayer
+	while curLayer != 0: #Descend until we're at the bottom
+		var kidDirection = path >> curLayer
+		if (curNode.mask >> kidDirection) & 1 == 0: #The path ends
+			return trail
+		var kidIndex = curNode.children[kidDirection & 0b1]
+		trail[curLayer - 1] = kidIndex
+		curNode = nodes.pot[curLayer - 1][kidIndex]
+		curLayer -= 1
+	return trail
 
-func insertNodeToGraph(layersFromLeaf:int, travAddress:int, nodeIndex:int):
-	var curNode = root
-	for i in layersFromRootToLeaf - layersFromLeaf:
-		var curLayer = layersFromRootToLeaf - i
-		var kidAddress = (travAddress >> (2 * curLayer)) & 0b11
-		if (curNode.kidMask >> kidAddress) & 1 == 0: 
-			printerr("Write cannot access address " + String.num_int64(travAddress))
-			return -1
-		curNode = nodes.pot[curLayer - 1][curNode.children[kidAddress]]
-	curNode.children[travAddress & 0b11] = nodeIndex
-	curNode.kidMask |= (1 << (travAddress & 0b11))
+#Hybrid Quadtree/Dag rn depending on insertion order
+#Figure out how and why references work the way they do
+func addData(path:int):
+	var pathIndexes = getPathIndi(path) #Path from leaf to root
+	var lastIndex = 1
+	#Placeholder so our reference in the loop doesn't break on it's first run
+	var lastNode:Branch = Branch.new() 
+	for layer in pathIndexes.size():
+		var curIndex:int = pathIndexes[layer]
+		var curNode:Branch
+		var newNode = false
+		if curIndex == -1: #Node does not exist
+			curNode = Branch.new()
+			newNode = true
+		else:
+			curNode = nodes.pot[layer][curIndex]
+			if curNode.refCount == 2:
+				curNode.refCount -= 1
+				curNode = curNode.duplicate()
+				newNode = true
+		var kidDirection = (path >> layer) & 0b1
+		curNode.children[kidDirection] = lastIndex
+		curNode.mask |= 1 << kidDirection
+		curNode.blockCount += 1
+		lastIndex = nodes.addNode(layer, curNode)
+		if newNode == true:
+			lastNode.refCount += 1
+		lastNode = curNode
 
-#Disgusting
-#func insertData(leavesToBeAdded:Array[int], _leavesToRemove:Array[int]):
-	#leavesToBeAdded.sort()
-	#var curIndex = 0
-	#while curIndex != leavesToBeAdded.size():
-		#var indiThisSweep = 1
-		#var kids:Array[int] = []
-		#var curCase = leavesToBeAdded[curIndex] >> 2
-		#var curKid = leavesToBeAdded[curIndex] & 0b11
-		#var kidMask = 1 << curKid
-		#for i in min(4 - (curKid + 1), leavesToBeAdded.size() - 1 - curIndex): #Prevent array overflow
-			#var case = leavesToBeAdded[curIndex + 1 + i] >> 2
-			#if case == curCase:
-				#indiThisSweep += 1
-				#kidMask |= 1 << (case & 0b11)
-func insertData(leavesAdded:Array[int]):
-	leavesAdded.sort() #Make sure leaves can be updated
-	#After we have a list of all updated pathways and their number of updates
-	#Use this list to run the algorithm in the comments above, accounting for cells already within the graph
-	var branchesUpdated:Dictionary =  {} 
-	for invlayer in layersFromRootToLeaf:
-		var curLayer = layersFromRootToLeaf - invlayer
-		var curMask = 0b11 << ((curLayer - 1) * 2)
-		for leaf in leavesAdded: 
-			var key = leaf & curMask
-			branchesUpdated.get_or_add(key, 0)
-			branchesUpdated[key] += 1 #Count number of blocks being added to each branch
+#Need to be written \/ \/ \/
+
+func readLeaf(path:int):
+	pass
+
+func mergeDuplicateNodes():
+	pass
 
 func expandTree(_filledQuadrant:int):
 	#Make root a child of a larger root with three empty segments
