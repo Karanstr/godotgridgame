@@ -72,9 +72,12 @@ func getPathIndi(path) -> Array[int]:
 #Hybrid Quadtree/Dag rn depending on insertion order
 #Figure out how and why references work the way they do
 func addData(path:int):
+	#Yeah I know I'm gettingPathIndi twice, shut up
+	if readLeaf(path) == 1:
+		return
 	var pathIndexes = getPathIndi(path) #Path from leaf to root
 	var lastIndex = 1
-	#Placeholder so our reference in the loop doesn't break on it's first run
+	#Placeholder so our loop doesn't break on it's first run
 	var lastNode:Branch = Branch.new() 
 	for layer in pathIndexes.size():
 		var curIndex:int = pathIndexes[layer]
@@ -98,10 +101,13 @@ func addData(path:int):
 			lastNode.refCount += 1
 		lastNode = curNode
 
-#Need to be written \/ \/ \/
-
 func readLeaf(path:int):
-	pass
+	var pathIndexes = getPathIndi(path) #Path from leaf to root
+	if pathIndexes[0] == -1:
+		return 0
+	return nodes.pot[0][pathIndexes[0]].children[path & 0b1]
+
+#Need to be written \/ \/ \/
 
 func mergeDuplicateNodes():
 	pass

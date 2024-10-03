@@ -8,3 +8,4 @@ func _ready():
 	tree.addData(0b010)
 	tree.addData(0b001)
 	tree.addData(0b011)
+	print(tree.readLeaf(0b011))
