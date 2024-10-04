@@ -19,6 +19,8 @@ class Nodes:
 		
 	func getNodeIndex(layer, node) -> int:
 		for branch in pot[layer].size():
+			if typeof(pot[layer][branch]) == 2:
+				continue
 			if pot[layer][branch].mask == node.mask && pot[layer][branch].children == node.children:
 				return branch
 		return -1
@@ -34,7 +36,7 @@ class Nodes:
 class Branch:
 	var children:Array[int]
 	var mask:int
-	var refCount:int = 1
+	var refCount:int = 0
 	var blockCount:int = 0
 	func _init(childMask:int = 0b00, kids:Array[int] = [0,0]):
 		children = kids
@@ -69,37 +71,32 @@ func getPathIndi(path) -> Array[int]:
 		curLayer -= 1
 	return trail
 
-#Hybrid Quadtree/Dag rn depending on insertion order
-#Figure out how and why references work the way they do
 func addData(path:int):
 	#Yeah I know I'm gettingPathIndi twice, shut up
-	if readLeaf(path) == 1:
+	if readLeaf(path) == 1: #The block is already set
 		return
-	var pathIndexes = getPathIndi(path) #Path from leaf to root
-	var lastIndex = 1
-	#Placeholder so our loop doesn't break on it's first run
-	var lastNode:Branch = Branch.new() 
+	var pathIndexes = getPathIndi(path) #Path from leaf[0] to root[size-1]
+	var lastIndex = 1 #We want to set our leaf to 1
 	for layer in pathIndexes.size():
 		var curIndex:int = pathIndexes[layer]
 		var curNode:Branch
-		var newNode = false
-		if curIndex == -1: #Node does not exist
+		if curIndex == -1:
 			curNode = Branch.new()
-			newNode = true
-		else:
+		else: #Node already exists and is referenced in our path
 			curNode = nodes.pot[layer][curIndex]
-			if curNode.refCount == 2:
-				curNode.refCount -= 1
-				curNode = curNode.duplicate()
-				newNode = true
+			curNode.refCount -= 1 #We are referencing this node no longer
+			curNode = curNode.duplicate()
+			if nodes.pot[layer][curIndex].refCount < 1: #If no more things reference the node
+				nodes.pot[layer][curIndex] = -1 #Remove the node
 		var kidDirection = (path >> layer) & 0b1
 		curNode.children[kidDirection] = lastIndex
 		curNode.mask |= 1 << kidDirection
 		curNode.blockCount += 1
-		lastIndex = nodes.addNode(layer, curNode)
-		if newNode == true:
-			lastNode.refCount += 1
-		lastNode = curNode
+		curIndex = nodes.addNode(layer, curNode)
+		if layer != 0: #Our child node technically doesn't exist on layer 0
+			nodes.pot[layer - 1][lastIndex].refCount += 1
+		lastIndex = curIndex
+
 
 func readLeaf(path:int):
 	var pathIndexes = getPathIndi(path) #Path from leaf to root
