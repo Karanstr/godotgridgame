@@ -1,25 +1,25 @@
 class_name SparseDimensionalDAG
 
-#For now we're going to use arrays and search instead of hashing/lookups.
-#This is very likely to change, don't worry about it
+#For now we're going to use arrays and o(n) it instead of hashing/lookups.
 class Nodes:
 	var pot:Array = []
 	
 	func _init(layers:int):
 		for layer in layers:
 			pot.push_back([])
-		pot[layers - 1].push_back(Branch.new())
+		addNode(layers - 1, Branch.new())
 	
+	#This feels like it should be reworked at some point, doesn't matter yet tho
 	func findFirstOpenSpot(layer):
 		for i in pot[layer].size():
 			if typeof(pot[layer][i]) == 2:
 				return i
 		pot[layer].push_back(-1)
 		return pot[layer].size() - 1
-		
+	
 	func getNodeIndex(layer, node) -> int:
 		for branch in pot[layer].size():
-			if typeof(pot[layer][branch]) == 2:
+			if typeof(pot[layer][branch]) == 2: #Is type int
 				continue
 			if pot[layer][branch].mask == node.mask && pot[layer][branch].children == node.children:
 				return branch
@@ -32,6 +32,15 @@ class Nodes:
 		var index = findFirstOpenSpot(layer)
 		pot[layer][index] = node
 		return index
+	
+	func removeIfNeeded(layer, index):
+		if pot[layer][index].refCount < 1:
+			pot[layer][index] = -1
+	
+	func modifyRefCount(layer, index, deltaRef):
+		print("Layer " + String.num(layer) + " Index " + String.num(index))
+		pot[layer][index].refCount += deltaRef
+		removeIfNeeded(layer, index)
 
 class Branch:
 	var children:Array[int]
@@ -72,10 +81,9 @@ func getPathIndi(path) -> Array[int]:
 	return trail
 
 func addData(path:int):
-	#Yeah I know I'm gettingPathIndi twice, shut up
-	if readLeaf(path) == 1: #The block is already set
-		return
 	var pathIndexes = getPathIndi(path) #Path from leaf[0] to root[size-1]
+	if pathIndexes[0] != -1 && nodes.pot[0][pathIndexes[0]].children[path & 0b1] == 1: 
+		return #Node exists and is already set
 	var lastIndex = 1 #We want to set our leaf to 1
 	for layer in pathIndexes.size():
 		var curIndex:int = pathIndexes[layer]
@@ -83,20 +91,16 @@ func addData(path:int):
 		if curIndex == -1:
 			curNode = Branch.new()
 		else: #Node already exists and is referenced in our path
-			curNode = nodes.pot[layer][curIndex]
-			curNode.refCount -= 1 #We are referencing this node no longer
-			curNode = curNode.duplicate()
-			if nodes.pot[layer][curIndex].refCount < 1: #If no more things reference the node
-				nodes.pot[layer][curIndex] = -1 #Remove the node
+			curNode = nodes.pot[layer][curIndex].duplicate()
+			nodes.modifyRefCount(layer, curIndex, -1)
 		var kidDirection = (path >> layer) & 0b1
 		curNode.children[kidDirection] = lastIndex
 		curNode.mask |= 1 << kidDirection
 		curNode.blockCount += 1
 		curIndex = nodes.addNode(layer, curNode)
-		if layer != 0: #Our child node technically doesn't exist on layer 0
-			nodes.pot[layer - 1][lastIndex].refCount += 1
+		if layer != 0: #Our leaf node technically doesn't exist on layer 0
+			nodes.modifyRefCount(layer - 1, lastIndex, 1)
 		lastIndex = curIndex
-
 
 func readLeaf(path:int):
 	var pathIndexes = getPathIndi(path) #Path from leaf to root
@@ -104,12 +108,7 @@ func readLeaf(path:int):
 		return 0
 	return nodes.pot[0][pathIndexes[0]].children[path & 0b1]
 
-#Need to be written \/ \/ \/
 
-func mergeDuplicateNodes():
-	pass
 
 func expandTree(_filledQuadrant:int):
-	#Make root a child of a larger root with three empty segments
-	#Incrememnt layersFromRootToLeaf
 	pass
