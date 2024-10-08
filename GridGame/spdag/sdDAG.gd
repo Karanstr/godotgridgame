@@ -55,7 +55,7 @@ class Nodes:
 		pot[layer][index] = node
 		return index
 	
-	func getNodeWithModifiedChildren(layer, index, childDirection, childIndex):
+	func getNodeWithAddedChild(layer, index, childDirection, childIndex):
 		var preNode = getNode(layer, index)
 		var newNode
 		if typeof(preNode) == 2: #There is no node at index
@@ -68,8 +68,21 @@ class Nodes:
 				if child != -1: #If child is set
 					pot[layer - 1][child].refCount += 1 #We are referencing child here
 		return newNode
-		
-	func decRef(layer, index):
+	
+	func getNodeWithRemovedChild(layer, index, childDirection):
+		var newNode = getNode(layer, index).duplicate()
+		newNode.children[childDirection] = -1
+		var remKids = 0
+		for child in newNode.children:
+			if child != -1: #If child is set
+				remKids += 1
+				if layer != 0:
+					pot[layer - 1][child].refCount += 1 #We are referencing child here
+		if remKids > 0 || layer == pot.size() - 1: #Don't delete node if it still has kids or is at root
+			return newNode
+		return -1 #This node is now empty
+	
+	func decRefDown(layer, index):
 		var node = getNode(layer, index)
 		if typeof(node) != 2:
 			node.refCount -= 1
@@ -77,7 +90,7 @@ class Nodes:
 				if layer != 0:
 					for child in node.children:
 						if child != -1:
-							decRef(layer - 1, child) #I hate recursion
+							decRefDown(layer - 1, child) #I hate recursion
 				pot[layer][index] = -1
 
 var nodes:Nodes
@@ -105,15 +118,42 @@ func getPathIndi(path) -> Array[int]:
 		curLayer -= 1
 	return trail
 
-func addData(path:int):
+func fillLeaf(path:int):
 	var pathIndexes:Array[int] = getPathIndi(path) #Path from leaf[0] to root[size-1]
 	if pathIndexes[0] != -1 && nodes.getNode(0, pathIndexes[0]).children[path & 0b1] == 1: 
 		return #Node exists and is already set
 	var lastIndex:int = 1 #We want to set our leaf to 1
 	for layer in pathIndexes.size():
-		var node = nodes.getNodeWithModifiedChildren(layer, pathIndexes[layer], (path >> layer) & 0b1, lastIndex)
-		lastIndex = nodes.addNode(layer, node)
-		nodes.decRef(layer, pathIndexes[layer])
+		var node = nodes.getNodeWithAddedChild(layer, pathIndexes[layer], (path >> layer) & 0b1, lastIndex)
+		lastIndex = nodes.addNode(layer, node) #Add new reference
+		if layer == topLayer: #The parent of the root can't clean the root up bc it doesn't exist
+			if lastIndex != pathIndexes[topLayer]:
+				nodes.decRefDown(layer, pathIndexes[layer]) #Remove pointless reference
+
+func insertChild(path:int, startLayer:int, newIndex:int):
+	var pathIndexes:Array[int] = getPathIndi(path) #Path from leaf[0] to root[size-1]
+	for layer in pathIndexes.size():
+		if layer < startLayer:
+			continue
+		var node = nodes.getNodeWithAddedChild(layer, pathIndexes[layer], (path >> layer) & 0b1, newIndex)
+		newIndex = nodes.addNode(layer, node)
+		if layer == topLayer: #The parent of the root can't clean the root up bc it doesn't exist
+			if newIndex != pathIndexes[topLayer]:
+				nodes.decRefDown(layer, pathIndexes[layer]) #Remove pointless reference
+
+func removeLeaf(path:int):
+	var pathIndexes:Array[int] = getPathIndi(path) #Path from leaf[0] to root[size-1]
+	if pathIndexes[0] == -1 || nodes.getNode(0, pathIndexes[0]).children[path & 0b1] == -1: 
+		return #Leaf is already unset
+	for layer in pathIndexes.size():
+		var node = nodes.getNodeWithRemovedChild(layer, pathIndexes[layer], (path >> layer) & 0b1)
+		nodes.decRefDown(layer, pathIndexes[layer])
+		if typeof(node) != 2: #If node still has valid children
+			var childIndex = nodes.addNode(layer, node)
+			if layer == topLayer:
+				return #We don't mess with the root for now
+			insertChild(path, layer + 1, childIndex)
+			break
 
 func readLeaf(path:int):
 	var leafAddr = getPathIndi(path)[0] #Path from leaf to root
