@@ -6,8 +6,6 @@ static var pot:Array = []
 #DO NOT MODIFY THE INITIAL VALUES OF EMPTYNODE!!!
 #THIS WILL CAUSE PROBLEMS
 static var emptyNode = Branch.new()
-#Node Address is as follows: Vector2i(layer, index)
-#static var rootList:Dictionary = {}
 
 class Branch:
 	var children:Array[int]
@@ -57,15 +55,15 @@ static func modifyReference(layer, index, deltaRef):
 
 #endregion
 
-static func addAlteredNode(layer, index, childDirection, newChild):
+static func addAlteredNode(layer:int, index:int, childDirection:int, newChildIndex:int):
 	var curNode = getNodeDup(layer, index)
 	var oldChild = curNode.children[childDirection]
-	curNode.children[childDirection] = newChild
+	curNode.children[childDirection] = newChildIndex
 	if layer != 0:
 		if oldChild != -1: #If old child was pointing somewhere
 			modifyReference(layer - 1, oldChild, -1)
-		if newChild != -1: #If new child is pointing somewhere
-			modifyReference(layer - 1, newChild, 1)
+		if newChildIndex != -1: #If new child is pointing somewhere
+			modifyReference(layer - 1, newChildIndex, 1)
 	if not curNode.isEmpty():
 		return addNode(layer, curNode)
 	return -1

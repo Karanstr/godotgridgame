@@ -7,7 +7,7 @@ func _init(layerCount:int = 1):
 	Nodes.ensureDepth(layerCount - 1)
 	rootAddress = Vector2i(layerCount - 1, -1) #No data is currently associated with root
 
-func getPathToLayer(path, targetLayer = 0) -> Array[int]:
+func getPathToLayer(path:int, targetLayer:int = 0) -> Array[int]:
 	var layersToStore = 1 + rootAddress[0] - targetLayer
 	var trail:Array[int] = []
 	trail.resize(layersToStore)
@@ -21,18 +21,13 @@ func getPathToLayer(path, targetLayer = 0) -> Array[int]:
 			break
 	return trail
 
-func setNodeChild(path, childIndex, targetLayer = 0):
+func setNodeChild(path:int, childIndex:int, targetLayer:int = 0):
 	var steps:Array = getPathToLayer(path, targetLayer)
-	var curChild = Nodes.readKid(targetLayer, steps[0], path & 0b1)
 	for step in steps.size():
 		var curLayer = targetLayer + step
 		childIndex = Nodes.addAlteredNode(curLayer, steps[step], (path >> step) & 0b1, childIndex)
 	#Gotta handle this part manually, WE are pointing to the root node instead of it's parent
-	if childIndex != -1:
-		Nodes.modifyReference(rootAddress[0], childIndex, 1)
-	if rootAddress[1] != -1:
-		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
-	rootAddress[1] = childIndex
+	reIndexRoot(childIndex)
 
 func readLeaf(path:int):
 	var leafAddr = getPathToLayer(path, 0)[0] #Path from leaf to root
@@ -40,5 +35,20 @@ func readLeaf(path:int):
 		return 0
 	return Nodes.readKid(0, leafAddr, path & 0b1)
 
-func expandTree(filledQuadrant:int):
-	pass
+#region Root Handling
+
+func reIndexRoot(newIndex:int):
+	if newIndex != -1:
+		Nodes.modifyReference(rootAddress[0], newIndex, 1)
+	if rootAddress[1] != -1:
+		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
+	rootAddress[1] = newIndex
+
+func raiseRootOneLevel(filledChildDirection:int):
+	Nodes.ensureDepth(rootAddress[0] + 1)
+	var newRootIndex:int = Nodes.addAlteredNode(rootAddress[0] + 1, -1, filledChildDirection, rootAddress[1])
+	Nodes.modifyReference(rootAddress[0] + 1, newRootIndex, 1)
+	Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
+	rootAddress = Vector2i(rootAddress[0] + 1, newRootIndex)
+
+#endregion
