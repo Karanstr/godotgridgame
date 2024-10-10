@@ -2,12 +2,16 @@
 class_name Nodes
 
 static var pot:Array = []
+#REMEMBER WE DON'T CLONE EMPTYNODE. WHEN WE DELETE A NODE WE POINT RIGHT TO EMPTYNODE
+#DO NOT MODIFY THE INITIAL VALUES OF EMPTYNODE!!!
+#THIS WILL CAUSE PROBLEMS
 static var emptyNode = Branch.new()
 #Node Address is as follows: Vector2i(layer, index)
 #static var rootList:Dictionary = {}
 
 class Branch:
 	var children:Array[int]
+	var refCount:int = 0
 	
 	func _init(kids:Array[int] = [-1, -1]):
 		children = kids.duplicate()
@@ -15,7 +19,7 @@ class Branch:
 	func duplicate():
 		var newBranch = Branch.new(children)
 		return newBranch
-	
+
 	func isEmpty():
 		return children == Nodes.emptyNode.children
 
@@ -33,9 +37,35 @@ static func getNodeDup(layer, index):
 		return emptyNode.duplicate()
 	return pot[layer][index].duplicate()
 
+#region Can Modify Nodes
+
+static func modifyReference(layer, index, deltaRef):
+	if index == -1:
+		emptyNode.Error()
+	var node = pot[layer][index]
+	if node.isEmpty():
+		pot[layer][index] = emptyNode
+		node.refCount = 0
+	else:
+		node.refCount += deltaRef
+		if node.refCount < 1:
+			if layer != 0:
+				for child in node.children:
+					if child != -1: #If was pointing somewhere
+						modifyReference(layer - 1, child, -1) 
+			pot[layer][index] = emptyNode #Node is hanging, delete it
+
+#endregion
+
 static func addAlteredNode(layer, index, childDirection, newChild):
 	var curNode = getNodeDup(layer, index)
+	var oldChild = curNode.children[childDirection]
 	curNode.children[childDirection] = newChild
+	if layer != 0:
+		if oldChild != -1: #If old child was pointing somewhere
+			modifyReference(layer - 1, oldChild, -1)
+		if newChild != -1: #If new child is pointing somewhere
+			modifyReference(layer - 1, newChild, 1)
 	if not curNode.isEmpty():
 		return addNode(layer, curNode)
 	return -1

@@ -24,11 +24,14 @@ func getPathToLayer(path, targetLayer = 0) -> Array[int]:
 func setNodeChild(path, childIndex, targetLayer = 0):
 	var steps:Array = getPathToLayer(path, targetLayer)
 	var curChild = Nodes.readKid(targetLayer, steps[0], path & 0b1)
-	if curChild == childIndex: #No need to do anything
-		return
 	for step in steps.size():
 		var curLayer = targetLayer + step
 		childIndex = Nodes.addAlteredNode(curLayer, steps[step], (path >> step) & 0b1, childIndex)
+	#Gotta handle this part manually, WE are pointing to the root node instead of it's parent
+	if childIndex != -1:
+		Nodes.modifyReference(rootAddress[0], childIndex, 1)
+	if rootAddress[1] != -1:
+		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
 	rootAddress[1] = childIndex
 
 func readLeaf(path:int):
