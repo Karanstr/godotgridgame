@@ -44,11 +44,26 @@ func reIndexRoot(newIndex:int):
 		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
 	rootAddress[1] = newIndex
 
+#At some point merge these two functions, with modifyRootLayer(newRootPath, deltaLayer)
 func raiseRootOneLevel(filledChildDirection:int):
-	Nodes.ensureDepth(rootAddress[0] + 1)
-	var newRootIndex:int = Nodes.addAlteredNode(rootAddress[0] + 1, -1, filledChildDirection, rootAddress[1])
-	Nodes.modifyReference(rootAddress[0] + 1, newRootIndex, 1)
-	Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
-	rootAddress = Vector2i(rootAddress[0] + 1, newRootIndex)
+	var newLayer = rootAddress[0] + 1
+	Nodes.ensureDepth(newLayer)
+	var newRootIndex:int = Nodes.addAlteredNode(newLayer, -1, filledChildDirection, rootAddress[1])
+	if rootAddress[1] != -1: #If the root/tree is currently empty
+		Nodes.modifyReference(newLayer, newRootIndex, 1)
+		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
+	rootAddress = Vector2i(newLayer, newRootIndex)
+
+func lowerRootOneLevel(preserveChildDirection:int):
+	var newLayer = rootAddress[0] - 1
+	if rootAddress[0] == 0:
+		print("Can't lower into leaf")
+		return
+	var newRootIndex:int = Nodes.readKid(rootAddress[0], rootAddress[1], preserveChildDirection)
+	if newRootIndex != -1: #We are referencing the new root
+		Nodes.modifyReference(newLayer, newRootIndex, 1)
+	if rootAddress[1] != -1: #We aren't referencing the old root anymore
+		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
+	rootAddress = Vector2i(newLayer, newRootIndex)
 
 #endregion
