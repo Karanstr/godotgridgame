@@ -1,10 +1,10 @@
 #For now we're going to use arrays and o(n) it instead of hashing/lookups.
+#Also this doesn't actually work, having one static class to store nodes, unless we only want to support a single n n-dimensional SDDAG at a time
 class_name Nodes
 
 static var pot:Array = []
-#REMEMBER WE DON'T CLONE EMPTYNODE. WHEN WE DELETE A NODE WE POINT RIGHT TO EMPTYNODE
+#REMEMBER EMPTYNODE DOESNT GET CLONED. WHEN WE DELETE A NODE WE POINT TO EMPTYNODE
 #DO NOT MODIFY THE INITIAL VALUES OF EMPTYNODE!!!
-#THIS WILL CAUSE PROBLEMS
 static var emptyNode = Branch.new()
 
 class Branch:
@@ -29,6 +29,10 @@ static func readKid(layer, index, childDirection):
 	if index == -1:
 		return -1
 	return pot[layer][index].children[childDirection]
+
+#No safety checks bc I'm speedrunning, I'll add those in later
+static func getChildrenIndexes(layer, index):
+	return pot[layer][index].children
 
 static func getNodeDup(layer, index):
 	if index == -1: #Stop lookups on empty arrays
@@ -55,13 +59,6 @@ static func modifyReference(layer, index, deltaRef):
 
 #endregion
 
-static func addAlteredNode(layer:int, index:int, childDirection:int, newChildIndex:int):
-	var curNode = getNodeDup(layer, index)
-	curNode.children[childDirection] = newChildIndex
-	if not curNode.isEmpty():
-		return addNode(layer, curNode)
-	return -1
-
 static func getNodeIndex(layer, node) -> int:
 	for index in pot[layer].size():
 		if pot[layer][index].children == node.children:
@@ -79,10 +76,17 @@ static func addNode(layer, node) -> int:
 	var potIndex = getNodeIndex(layer, node)
 	if potIndex != -1:
 		return potIndex
-	if layer != 0:
+	if layer != 0: #If the node has node children
 		for child in node.children:
 			if child != -1: #We are now pointing to this child from the new node
 				modifyReference(layer - 1, child, 1) 
 	var index = findFirstOpenSpot(layer)
 	pot[layer][index] = node
 	return index
+
+static func addAlteredNode(layer:int, index:int, childDirection:int, newChildIndex:int):
+	var curNode = getNodeDup(layer, index)
+	curNode.children[childDirection] = newChildIndex
+	if not curNode.isEmpty():
+		return addNode(layer, curNode)
+	return -1

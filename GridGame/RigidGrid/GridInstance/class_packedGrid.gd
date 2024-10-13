@@ -2,7 +2,7 @@ class_name packedGrid
 
 #Supposed to be consts but it hates me
 static var bitsPerBlock:int = BinUtil.bitsToStore(BlockTypes.maxBlockIndex+1) #Must store all blockTypes + null value
-static var blocksPerBox:int = BinUtil.boxSize/bitsPerBlock
+static var blocksPerBox:int = 64/bitsPerBlock
 static var blockMask:int = BinUtil.genMask(bitsPerBlock)
 
 var boxesPerRow:int

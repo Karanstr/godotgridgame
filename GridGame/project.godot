@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="GridGame"
-run/main_scene="res://Main.scn"
+run/main_scene="res://spdag/Test.scn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [debug]

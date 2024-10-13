@@ -1,3 +1,4 @@
+#Right now only compatible with 1 dimensional binary tree
 class_name SparseDimensionalDAG
 
 #(Root Layer, Root Index)
@@ -44,12 +45,12 @@ func reIndexRoot(newIndex:int):
 		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
 	rootAddress[1] = newIndex
 
-#At some point merge these two functions, with modifyRootLayer(newRootPath, deltaLayer)
+#Merge this and below into one modifyRootLayer function.
 func raiseRootOneLevel(filledChildDirection:int):
 	var newLayer = rootAddress[0] + 1
 	Nodes.ensureDepth(newLayer)
 	var newRootIndex:int = Nodes.addAlteredNode(newLayer, -1, filledChildDirection, rootAddress[1])
-	if rootAddress[1] != -1: #If the root/tree is currently empty
+	if rootAddress[1] != -1: #If the root/tree is not currently empty
 		Nodes.modifyReference(newLayer, newRootIndex, 1)
 		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
 	rootAddress = Vector2i(newLayer, newRootIndex)
@@ -65,5 +66,24 @@ func lowerRootOneLevel(preserveChildDirection:int):
 	if rootAddress[1] != -1: #We aren't referencing the old root anymore
 		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
 	rootAddress = Vector2i(newLayer, newRootIndex)
+
+#endregion
+
+#region Binary it
+
+#I hate recursion. Also only works with depths of up to 6 rn bc I'm not implementing binSizes of larger than 64 yet
+func DFSGraphToBin(curLayer:int = rootAddress[0], curIndex:int = rootAddress[1]):
+	var childBinSize = 2 ** curLayer #Number of children per node * curLayer
+	var binRep:int = 0b0
+	var children:Array[int] = Nodes.getChildrenIndexes(curLayer, curIndex)
+	for child in children.size():
+		if children[child] == -1: #If child doesn't exist
+			pass
+			#Don't do anything
+		elif curLayer != 0:
+			binRep |= DFSGraphToBin(curLayer - 1, children[child]) << (childBinSize * child)
+		else:
+			binRep |= 1 << (childBinSize * child)
+	return binRep
 
 #endregion
