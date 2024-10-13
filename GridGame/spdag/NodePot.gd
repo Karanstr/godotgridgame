@@ -23,7 +23,7 @@ class Branch:
 
 static func ensureDepth(rootLayer:int = 0):
 	for i in 1 + rootLayer - (pot.size()):
-		pot.push_back([Branch.new()]) #Index 0 is reserved for empty
+		pot.push_back([emptyNode]) #Index 0 is reserved for empty
 
 #region Read Node Data
 

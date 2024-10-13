@@ -4,21 +4,53 @@ var tree:SparseDimensionalDAG
 var pot = Nodes.pot
 
 var rectData:Array = []
-var blockDims = Vector2(1, 1)
+var blockDims = Vector2(.5,.5)
 
 func _ready():
-	tree = SparseDimensionalDAG.new(2)
+	get_node("Highlight").polygon[1].y = blockDims.y
+	get_node("Highlight").polygon[2].y = blockDims.y
+	get_node("Highlight").polygon[2].x = blockDims.x * 2
+	get_node("Highlight").polygon[3].x = blockDims.x * 2
+
+	tree = SparseDimensionalDAG.new(0)
 	tree.setNodeChild(0b000, 1)
 	tree.setNodeChild(0b110, 1)
 	tree.setNodeChild(0b111, 1)
 
-#Stupid bad rendering. Problem is this data type was designed for raymarching, not greedymeshing
+func posToCell(mousePos:Vector2) -> Vector2i:
+	var cell = Vector2i(floor(mousePos/blockDims))
+	return cell
+
+func _input(event):
+	if event is InputEventMouseButton and event.pressed:
+		var cell = posToCell(get_local_mouse_position())
+		var maxCell = 2**(tree.rootAddress[0] + 1)
+		if cell.x < 0 || cell.x >= maxCell:
+			var side = 0 if cell.x > 0 else 1
+			var numOfBlocksShifted = maxCell / 2
+			position.x -= blockDims.x * numOfBlocksShifted * 2 * (side)
+			print(position.x)
+			tree.raiseRootOneLevel(side)
+			cell.x += numOfBlocksShifted * 2 * side
+		if cell.x >= 0 && cell.x < maxCell * 2:
+			var newValue = 0
+			if tree.readLeaf(cell.x) == 0:
+				newValue = 1
+			tree.setNodeChild(cell.x, newValue)
+
 func _process(_delta):
+	updateRender()
+
+#Stupid bad rendering. 
+
+#region Render Management
+
+func updateRender():
 	_removeRenderBoxes()
 	rectData = BinUtil.greedyRect([tree.DFSGraphToBin()])
 	_addRenderBoxes()
-
-#region Render Management
+	get_node("Highlight").polygon[2].x = 2**(tree.rootAddress[0] + 1) * blockDims.x
+	get_node("Highlight").polygon[3].x = 2**(tree.rootAddress[0] + 1) * blockDims.x
 
 func _rectiToRect(recti:Rect2i) -> Rect2:
 	var rect:Rect2 = Rect2(recti)
