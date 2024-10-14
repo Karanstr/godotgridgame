@@ -72,6 +72,36 @@ func lowerRootOneLevel(preserveChildDirection:int):
 		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
 	rootAddress = Vector2i(newLayer, newRootIndex)
 
+func growToContain(cell) -> Array:
+	var maxCell = 2 ** (rootAddress[0] + 1)
+	var side = 0 if cell.x > 0 else 1
+	var totalBlocksShifted:Vector2i = Vector2i(0, 0)
+	while cell.x < 0 || cell.x >= maxCell: #Cell isn't within bounds
+		var numOfBlocksShifted = maxCell / 2
+		raiseRootOneLevel(side)
+		maxCell = 2 ** (rootAddress[0] + 1)
+		cell.x += numOfBlocksShifted * 2 * side
+		totalBlocksShifted.x -= 2 * numOfBlocksShifted * side
+	return [cell, totalBlocksShifted]
+
+func shrinkToFit() -> int:
+	var foundNum = 1
+	var found:int
+	var blocksShifted = 0
+	while foundNum == 1:
+		if rootAddress[0] == 0:
+			break
+		var children = Nodes.getChildrenIndexes(rootAddress[0], rootAddress[1])
+		foundNum = 0
+		for child in children.size():
+			if children[child] != 0:
+				foundNum += 1
+				found = child
+		if foundNum == 1:
+			blocksShifted += (2 ** rootAddress[0]) * found / 2 #Cheap hack, doesn't generalize
+			lowerRootOneLevel(found)
+	return blocksShifted
+
 #endregion
 
 #region Binary Stuff

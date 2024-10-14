@@ -24,19 +24,14 @@ func posToCell(mousePos:Vector2) -> Vector2i:
 func _input(event):
 	if event is InputEventMouseButton and event.pressed:
 		var cell = posToCell(get_local_mouse_position())
-		var maxCell = 2**(tree.rootAddress[0] + 1)
-		if cell.x < 0 || cell.x >= maxCell:
-			var side = 0 if cell.x > 0 else 1
-			var numOfBlocksShifted = maxCell / 2
-			position.x -= blockDims.x * numOfBlocksShifted * 2 * (side)
-			print(position.x)
-			tree.raiseRootOneLevel(side)
-			cell.x += numOfBlocksShifted * 2 * side
-		if cell.x >= 0 && cell.x < maxCell * 2:
-			var newValue = 0
-			if tree.readLeaf(cell.x) == 0:
-				newValue = 1
-			tree.setNodeChild(cell.x, newValue)
+		var data = tree.growToContain(cell)
+		cell = data[0]
+		position += Vector2(data[1]) * blockDims
+		var newValue = 0
+		if tree.readLeaf(cell.x) == 0:
+			newValue = 1
+		tree.setNodeChild(cell.x, newValue)
+		position.x += tree.shrinkToFit()
 
 func _process(_delta):
 	updateRender()
