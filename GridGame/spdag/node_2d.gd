@@ -12,9 +12,7 @@ func _ready():
 	get_node("Highlight").polygon[2].x = blockDims.x * 2
 	get_node("Highlight").polygon[3].x = blockDims.x * 2
 	tree = SparseDimensionalDAG.new(0)
-	tree.setNodeChild(0b000, 1)
-	tree.setNodeChild(0b110, 1)
-	tree.setNodeChild(0b111, 1)
+
 
 func posToCell(mousePos:Vector2) -> Vector2i:
 	var cell = Vector2i(floor(mousePos/blockDims))
