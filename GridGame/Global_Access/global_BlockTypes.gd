@@ -15,7 +15,8 @@ static var maxBlockIndex = 2
 
 static var blocks:Dictionary = {
 	1: Block.new("blue", preload("./Textures/blue.png"), true, 1),
-	2: Block.new("red", preload("./Textures/red.png"), true, 2)
+	2: Block.new("red", preload("./Textures/red.png"), true, 2),
+	3: Block.new("green", preload("./Textures/green.png"), true, 3),
 }
 static var solidBlocks:Dictionary = {
 	1: null,

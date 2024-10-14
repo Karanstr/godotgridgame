@@ -1,7 +1,7 @@
 #For now we're going to use arrays and o(n) it instead of hashing/lookups.
-#Also this doesn't actually work, having one static class to store nodes, unless we only want to support a single n n-dimensional SDDAG at a time
 class_name Nodes
 
+static var n = 1
 static var pot:Array = []
 #REMEMBER EMPTYNODE DOESNT GET CLONED, ALL EMPTY NODES POINT TO EMPTYNODE
 #DO NOT MODIFY THE INITIAL VALUES OF EMPTYNODE!!!
@@ -11,7 +11,10 @@ class Branch:
 	var children:Array[int]
 	var refCount:int = 0
 	
-	func _init(kids:Array[int] = [0, 0]):
+	func _init(kids:Array[int] = []):
+		if kids.size() == 0:
+			kids.resize(2**Nodes.n)
+			kids.fill(0)
 		children = kids.duplicate()
 	
 	func duplicate():
@@ -20,10 +23,6 @@ class Branch:
 
 	func isEmpty():
 		return children == Nodes.emptyNode.children
-
-static func ensureDepth(rootLayer:int = 0):
-	for i in 1 + rootLayer - (pot.size()):
-		pot.push_back([emptyNode]) #Index 0 is reserved for empty
 
 #region Read Node Data
 
@@ -54,6 +53,10 @@ static func modifyReference(layer, index, deltaRef):
 #endregion
 
 #region Populate Graph
+
+static func ensureDepth(rootLayer:int = 0):
+	for i in 1 + rootLayer - (pot.size()):
+		pot.push_back([emptyNode]) #Index 0 is reserved for empty
 
 static func getNodeDup(layer, index):
 	return pot[layer][index].duplicate()

@@ -11,7 +11,6 @@ func _ready():
 	get_node("Highlight").polygon[2].y = blockDims.y
 	get_node("Highlight").polygon[2].x = blockDims.x * 2
 	get_node("Highlight").polygon[3].x = blockDims.x * 2
-
 	tree = SparseDimensionalDAG.new(0)
 	tree.setNodeChild(0b000, 1)
 	tree.setNodeChild(0b110, 1)
@@ -31,7 +30,8 @@ func _input(event):
 		if tree.readLeaf(cell.x) == 0:
 			newValue = 1
 		tree.setNodeChild(cell.x, newValue)
-		position.x += tree.shrinkToFit()
+		position.x += tree.shrinkToFit() * blockDims.x
+		position.x += tree.compactRoot() * blockDims.x
 
 func _process(_delta):
 	updateRender()

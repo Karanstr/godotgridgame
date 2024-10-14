@@ -98,8 +98,36 @@ func shrinkToFit() -> int:
 				foundNum += 1
 				found = child
 		if foundNum == 1:
-			blocksShifted += (2 ** rootAddress[0]) * found / 2 #Cheap hack, doesn't generalize
+			blocksShifted += (2 ** rootAddress[0]) * found #Cheap hack, doesn't generalize
 			lowerRootOneLevel(found)
+	return blocksShifted
+
+func compactRoot():
+	var blocksShifted = 0
+	while rootAddress[0] != 0:
+		var newRoot = Nodes.emptyNode.duplicate()
+		var dLookup = [1, 0]
+		var rootKids = Nodes.getChildrenIndexes(rootAddress[0], rootAddress[1])
+		for rootKid in rootKids.size():
+			if rootKids[rootKid] == 0:
+				pass
+			else:
+				var kid0Kids = Nodes.getChildrenIndexes(rootAddress[0] - 1, rootKids[rootKid])
+				var kidCount = 0
+				for kid in kid0Kids.size():
+					if kid0Kids[kid] != 0:
+						kidCount += 1
+					if kidCount > 1:
+						return blocksShifted
+				if kid0Kids[dLookup[rootKid]] == 0:
+					return blocksShifted
+				else:
+					newRoot.children[rootKid] = kid0Kids[dLookup[rootKid]]
+		var newRootIndex = Nodes.addNode(rootAddress[0] - 1, newRoot)
+		Nodes.modifyReference(rootAddress[0] - 1, newRootIndex, 1)
+		Nodes.modifyReference(rootAddress[0], rootAddress[1], -1)
+		rootAddress = Vector2i(rootAddress[0] - 1, newRootIndex)
+		blocksShifted += 2 ** rootAddress[0]
 	return blocksShifted
 
 #endregion
