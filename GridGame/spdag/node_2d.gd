@@ -4,7 +4,7 @@ var tree:SparseDimensionalDAG
 var pot = Nodes.pot
 
 var rectData:Array = []
-var blockDims = Vector2(.5,.5)
+var blockDims = Vector2(.66,.66)
 
 func _ready():
 	get_node("Highlight").polygon[1].y = blockDims.y
