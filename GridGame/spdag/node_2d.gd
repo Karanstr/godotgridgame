@@ -13,7 +13,6 @@ func _ready():
 	get_node("Highlight").polygon[3].x = blockDims.x * 2
 	tree = SparseDimensionalDAG.new(0)
 
-
 func posToCell(mousePos:Vector2) -> Vector2i:
 	var cell = Vector2i(floor(mousePos/blockDims))
 	return cell
@@ -34,7 +33,7 @@ func _input(event):
 func _process(_delta):
 	updateRender()
 
-#Stupid bad rendering. 
+#Stupid bad rendering
 
 #region Render Management
 
