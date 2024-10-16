@@ -1,7 +1,7 @@
 extends Node2D
 
-var tree:SparseDimensionalDAG
-var pot = Nodes.pot
+var world:FixedDimensionDAG
+var root:FixedDimensionDAG.NodeAddress
 
 var rectData:Array = []
 var blockDims = Vector2(.66,.66)
@@ -11,7 +11,11 @@ func _ready():
 	get_node("Highlight").polygon[2].y = blockDims.y
 	get_node("Highlight").polygon[2].x = blockDims.x * 2
 	get_node("Highlight").polygon[3].x = blockDims.x * 2
-	tree = SparseDimensionalDAG.new(0)
+	
+	world = FixedDimensionDAG.new(1)
+	var startLayer = 3
+	world.ensureDepth(startLayer)
+	root = world.NodeAddress.new(startLayer, 0)
 
 func posToCell(mousePos:Vector2) -> Vector2i:
 	var cell = Vector2i(floor(mousePos/blockDims))
@@ -20,15 +24,16 @@ func posToCell(mousePos:Vector2) -> Vector2i:
 func _input(event):
 	if event is InputEventMouseButton and event.pressed:
 		var cell = posToCell(get_local_mouse_position())
-		var data = tree.growToContain(cell)
-		cell = data[0]
-		position += Vector2(data[1]) * blockDims
+		#var data = tree.growToContain(cell)
+		#cell = data[0]
+		#position += Vector2(data[1]) * blockDims
 		var newValue = 0
-		if tree.readLeaf(cell.x) == 0:
-			newValue = 1
-		tree.setNodeChild(cell.x, newValue)
-		position.x += tree.shrinkToFit() * blockDims.x
-		position.x += tree.compactRoot() * blockDims.x
+		if cell.x >= 0 && cell.x < 2 ** (root.layer + 1):
+			if world.readLeaf(root, cell.x) == 0:
+				newValue = 1
+			root = world.setNodeChild(root, cell.x, newValue)
+		#position.x += tree.shrinkToFit() * blockDims.x
+		#position.x += tree.compactRoot() * blockDims.x
 
 func _process(_delta):
 	updateRender()
@@ -39,10 +44,10 @@ func _process(_delta):
 
 func updateRender():
 	_removeRenderBoxes()
-	rectData = BinUtil.greedyRect([tree.DFSGraphToBin()])
+	rectData = BinUtil.greedyRect([world.DFSGraphToBin(root)])
 	_addRenderBoxes()
-	get_node("Highlight").polygon[2].x = 2**(tree.rootAddress[0] + 1) * blockDims.x
-	get_node("Highlight").polygon[3].x = 2**(tree.rootAddress[0] + 1) * blockDims.x
+	get_node("Highlight").polygon[2].x = 2**(root.layer + 1) * blockDims.x
+	get_node("Highlight").polygon[3].x = 2**(root.layer + 1) * blockDims.x
 
 func _rectiToRect(recti:Rect2i) -> Rect2:
 	var rect:Rect2 = Rect2(recti)

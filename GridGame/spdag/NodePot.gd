@@ -20,7 +20,7 @@ class Branch:
 	func duplicate():
 		#var newBranch = Branch.new(children)
 		#return newBranch
-		return Branch.new(children)
+		return Branch.new("Ignore This", children)
 	
 	func isSame(node):
 		return children == node.children
@@ -85,8 +85,8 @@ func DFSGraphToBin(node:NodeAddress) -> int:
 	var binRep:int = 0b0
 	var children:Array[int] = getNodeChildren(node)
 	for child in children.size():
-		if n != 0:
-			binRep |= DFSGraphToBin(NodeAddress.new(node.layer - 1, children[child]) << (childBinSize * child))
+		if node.layer != 0:
+			binRep |= DFSGraphToBin(NodeAddress.new(node.layer - 1, children[child])) << (childBinSize * child)
 		elif children[child] != 0:
 			binRep |= 1 << (childBinSize * child)
 	return binRep
@@ -139,6 +139,7 @@ func addAlteredNode(referenceNode:NodeAddress, childDirection:int, newChildIndex
 		return addNode(referenceNode.layer, newNode)
 	return 0
 
+#Maybe just modify root?
 func modifyRootLayerBy1(root:NodeAddress, relevantChildDirection:int, layerModifier:int) -> NodeAddress:
 	var newLayer:int = root.layer + layerModifier
 	var newIndex:int
@@ -163,7 +164,7 @@ func ensureDepth(rootLayer:int = 0):
 #endregion
 
 #Make path it's only class, with functions to get each part? This seems like a good way to unlock it's dimension easily and increase functionality?
-#Also not a huge fan of the region name, work on it
+#Also not a huge fan of the region name, work on itgit 
 
 #region Tree-Level Read/Writes
 
